@@ -1,0 +1,44 @@
+# ==========================================
+# 🌸 KOREA PURE BEAUTY - GITIGNORE
+# ==========================================
+
+# Mjedisi & Çelësat Sekretë (Kredencialet SMTP / API)
+.env
+.env.*
+!.env.example
+
+# Baza e të dhënave lokale SQLite
+*.db
+*.sqlite
+*.sqlite3
+korea_beauty.db
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Mjediset Virtuale Python
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Konfigurimet e Streamlit
+.streamlit/secrets.toml
+
+# IDE & Redaktuesit e Kodit
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Ngarkimet e fotove lokale
+uploads/*
+!uploads/.gitkeep
