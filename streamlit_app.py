@@ -13,6 +13,7 @@ import database
 import auth
 import email_service
 import urllib.parse
+import unicodedata
 
 # 1. Konfigurimi Kryesor
 from PIL import Image
@@ -81,6 +82,177 @@ def get_favicon_data_uri() -> str:
         except Exception:
             pass
     return ""
+
+def normalize_albanian_text(s: str) -> str:
+    if not s:
+        return ""
+    s = s.lower()
+    s = unicodedata.normalize('NFKD', s)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    return s.replace('ë', 'e').replace('ç', 'c').strip()
+
+@st.cache_data(show_spinner=False)
+def get_live_search_script_tag() -> str:
+    js_code = """
+(function() {
+    function norm(str) {
+        if (!str) return '';
+        return str.toLowerCase()
+                  .normalize('NFD')
+                  .replace(/[\\u0300-\\u036f]/g, '')
+                  .replace(/ë/g, 'e')
+                  .replace(/ç/g, 'c');
+    }
+
+    function initShopSearch() {
+        const searchInput = (typeof document !== 'undefined') ? (
+            document.querySelector('.st-key-kpb_live_search_input input') 
+            || document.querySelector('input[aria-label*="Kërko me emër"]')
+            || document.querySelector('input[placeholder*="Anua, COSRX, Beauty of Joseon"]')
+        ) : null;
+
+        if (!searchInput) return;
+        if (searchInput.dataset.liveSearchAttached === 'true') return;
+        searchInput.dataset.liveSearchAttached = 'true';
+
+        function applyFilter() {
+            const rawVal = (searchInput.value || '').trim();
+            const queryNorm = norm(rawVal);
+            const tokens = queryNorm ? queryNorm.split(/\\s+/).filter(Boolean) : [];
+            const wrappers = document.querySelectorAll('.card-product-wrapper');
+            let visibleCount = 0;
+            const totalCount = wrappers.length;
+
+            const touchedCols = new Set();
+
+            wrappers.forEach(function(w) {
+                const searchText = norm(w.getAttribute('data-search') || w.textContent || '');
+                const matches = tokens.length === 0 || tokens.every(function(tk) {
+                    return searchText.includes(tk);
+                });
+
+                const card = w.closest('[class*="st-key-kpb_card_"]') 
+                          || w.closest('[data-testid="stVerticalBlockBorderWrapper"]') 
+                          || w.parentElement;
+
+                if (card) {
+                    const col = card.closest('[data-testid="column"]');
+                    if (col) touchedCols.add(col);
+
+                    if (matches) {
+                        card.style.removeProperty('display');
+                        visibleCount++;
+                    } else {
+                        card.style.setProperty('display', 'none', 'important');
+                    }
+                }
+            });
+
+            touchedCols.forEach(function(col) {
+                const cardsInCol = col.querySelectorAll('[class*="st-key-kpb_card_"]');
+                let hasVisible = false;
+                cardsInCol.forEach(function(c) {
+                    if (c.style.display !== 'none') {
+                        hasVisible = true;
+                    }
+                });
+
+                if (!hasVisible && tokens.length > 0) {
+                    col.style.setProperty('display', 'none', 'important');
+                } else {
+                    col.style.removeProperty('display');
+                }
+            });
+
+            const caption = document.getElementById('kpb-product-count');
+            if (caption) {
+                if (tokens.length > 0) {
+                    caption.innerHTML = 'Po shfaqen <strong>' + visibleCount + '</strong> produkte nga ' + totalCount + ' (kërkimi: "' + rawVal + '")';
+                } else {
+                    caption.innerHTML = 'Po shfaqen <strong>' + totalCount + '</strong> produkte';
+                }
+            }
+
+            const noMsg = document.getElementById('no-live-products-msg');
+            const noMsgText = document.getElementById('no-live-products-text');
+            if (noMsg) {
+                if (visibleCount === 0 && totalCount > 0 && tokens.length > 0) {
+                    noMsg.style.display = 'block';
+                    if (noMsgText) {
+                        noMsgText.textContent = 'Nuk u gjet asnjë produkt për "' + rawVal + '".';
+                    }
+                } else {
+                    noMsg.style.display = 'none';
+                }
+            }
+        }
+
+        searchInput.addEventListener('input', applyFilter);
+        searchInput.addEventListener('keyup', applyFilter);
+        searchInput.addEventListener('change', applyFilter);
+        searchInput.addEventListener('paste', function() { setTimeout(applyFilter, 20); });
+        searchInput.addEventListener('search', applyFilter);
+
+        if (searchInput.value) {
+            applyFilter();
+        }
+    }
+
+    function initInventorySearch() {
+        const invInput = (typeof document !== 'undefined') ? (
+            document.querySelector('.st-key-kpb_inv_live_search_input input')
+            || document.querySelector('input[placeholder*="Anua, COSRX"]')
+        ) : null;
+
+        if (!invInput) return;
+        if (invInput.dataset.liveSearchAttached === 'true') return;
+        invInput.dataset.liveSearchAttached = 'true';
+
+        function applyInvFilter() {
+            const rawVal = (invInput.value || '').trim();
+            const queryNorm = norm(rawVal);
+            const tokens = queryNorm ? queryNorm.split(/\\s+/).filter(Boolean) : [];
+            const expanders = document.querySelectorAll('[data-testid="stExpander"]');
+
+            expanders.forEach(function(exp) {
+                const expText = norm(exp.textContent || '');
+                const matches = tokens.length === 0 || tokens.every(function(tk) {
+                    return expText.includes(tk);
+                });
+                if (matches) {
+                    exp.style.removeProperty('display');
+                } else {
+                    exp.style.setProperty('display', 'none', 'important');
+                }
+            });
+        }
+
+        invInput.addEventListener('input', applyInvFilter);
+        invInput.addEventListener('keyup', applyInvFilter);
+        invInput.addEventListener('change', applyInvFilter);
+        invInput.addEventListener('paste', function() { setTimeout(applyInvFilter, 20); });
+        invInput.addEventListener('search', applyInvFilter);
+
+        if (invInput.value) {
+            applyInvFilter();
+        }
+    }
+
+    function runAll() {
+        initShopSearch();
+        initInventorySearch();
+    }
+
+    runAll();
+
+    if (!window._kpbLiveSearchInterval) {
+        window._kpbLiveSearchInterval = setInterval(runAll, 250);
+    }
+})();
+"""
+    b64 = base64.b64encode(js_code.encode("utf-8")).decode("ascii")
+    return f'<img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display:none;" onload="try{{eval(atob(\'{b64}\'))}}catch(e){{console.error(e);}}">'
+
 
 ADMIN_NOTIFICATION_EMAIL = "leart.demaku2006@gmail.com"
 UPLOAD_DIR = "uploads"
@@ -1487,22 +1659,48 @@ def render_client_app():
         # Filtrat
         c_search, c_skin, c_cat = st.columns([2, 1, 1])
         with c_search:
-            search_query = st.text_input("🔍 Kërko me emër ose markë...")
+            search_query = st.text_input(
+                "🔍 Kërko me emër ose markë...",
+                key="kpb_live_search_input",
+                placeholder="Shkruaj p.sh. Anua, COSRX, Beauty of Joseon, Toner..."
+            )
         with c_skin:
-            skin_filter = st.selectbox("Lloji i Lëkurës", ["Të gjitha", "Të gjitha tipet", "E Thata", "E Yndyrshme", "Mikse (Kombinuar)", "Sensitive", "Me Akne / Poret"])
+            skin_filter = st.selectbox(
+                "Lloji i Lëkurës",
+                ["Të gjitha", "Të gjitha tipet", "E Thata", "E Yndyrshme", "Mikse (Kombinuar)", "Sensitive", "Me Akne / Poret"],
+                key="kpb_skin_select"
+            )
         with c_cat:
-            cat_filter = st.selectbox("Kategoria", ["Të gjitha", "Cleanser (Pastrues)", "Toner", "Serum / Essence", "Moisturizer (Krem)", "Sunscreen (SPF)", "Maskë", "Eye Cream"])
+            cat_filter = st.selectbox(
+                "Kategoria",
+                ["Të gjitha", "Cleanser (Pastrues)", "Toner", "Serum / Essence", "Moisturizer (Krem)", "Sunscreen (SPF)", "Maskë", "Eye Cream"],
+                key="kpb_cat_select"
+            )
 
-        if search_query:
-            products = database.search_products(search_query)
-        elif skin_filter != "Të gjitha":
-            products = database.get_products_by_skin_type(skin_filter)
-        elif cat_filter != "Të gjitha":
-            products = database.get_products_by_category(cat_filter)
-        else:
-            products = all_p
+        products = all_p
+        if skin_filter not in ["Të gjitha", "Të gjitha tipet"]:
+            products = [p for p in products if p.get('skin_type') == skin_filter]
 
-        st.caption(f"Po shfaqen **{len(products)}** produkte")
+        if cat_filter != "Të gjitha":
+            products = [p for p in products if p.get('category') == cat_filter]
+
+        # Injektimi i motorit të kërkimit në kohë reale (0ms vonesë pa reload)
+        st.markdown(get_live_search_script_tag(), unsafe_allow_html=True)
+
+        st.markdown(
+            f'<div id="kpb-product-count" class="kpb-product-count-caption" style="color: light-dark(#64748b, #8892b0); font-size: 0.88rem; font-weight: 600; margin-bottom: 12px;">'
+            f'Po shfaqen <strong>{len(products)}</strong> produkte'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+        st.markdown("""
+        <div id="no-live-products-msg" style="display: none; text-align: center; padding: 40px 20px; background: rgba(255, 117, 140, 0.05); border: 2px dashed rgba(255, 117, 140, 0.35); border-radius: 20px; margin: 25px 0;">
+            <div style="font-size: 42px; margin-bottom: 8px;">🔍</div>
+            <div style="font-size: 1.15rem; font-weight: 800; color: #ff758c; margin-bottom: 6px;" id="no-live-products-text">Nuk u gjet asnjë produkt për këtë kërkim.</div>
+            <div style="font-size: 0.9rem; opacity: 0.75;">Provoni të shkruani një emër ose markë tjetër, ose pastroni kërkimin për të parë të gjitha produktet.</div>
+        </div>
+        """, unsafe_allow_html=True)
 
         cols = st.columns(3)
         for idx, p in enumerate(products):
@@ -1522,8 +1720,15 @@ def render_client_app():
                     desc_text = p['description'] if p['description'] else "Produkt origjinal i testuar me cilësi të lartë për kujdesin ndaj lëkurës."
                     card_desc = html.escape(" ".join(desc_text.split()))
 
+                    searchable_text = f"{p['name']} {p['brand']} {p['category']} {p['skin_type']} {desc_text}"
+                    searchable_clean = html.escape(" ".join(searchable_text.split()))
+
                     card_info_html = f"""
-                    <div class='card-product-wrapper'>
+                    <div class='card-product-wrapper'
+                         data-card-id='{p['id']}'
+                         data-brand='{html.escape(p['brand'])}'
+                         data-name='{html.escape(p['name'])}'
+                         data-search='{searchable_clean}'>
                         <div class='card-img-wrap'>
                             <img src='{card_img_uri}' alt='{clean_name}' class='card-img-tag' />
                         </div>

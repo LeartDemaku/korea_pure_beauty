@@ -262,14 +262,22 @@ def get_all_products() -> List[Dict]:
         conn.close()
 
 def search_products(query: str) -> List[Dict]:
+    if not query or not query.strip():
+        return get_all_products()
+    tokens = [t.strip() for t in query.strip().split() if t.strip()]
+    if not tokens:
+        return get_all_products()
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute('''
-            SELECT * FROM products 
-            WHERE name LIKE ? OR brand LIKE ? OR category LIKE ?
-            ORDER BY created_at DESC
-        ''', (f'%{query}%', f'%{query}%', f'%{query}%'))
+        clauses = []
+        params = []
+        for t in tokens:
+            clauses.append("(name LIKE ? OR brand LIKE ? OR category LIKE ? OR skin_type LIKE ? OR description LIKE ?)")
+            p = f'%{t}%'
+            params.extend([p, p, p, p, p])
+        where_sql = " AND ".join(clauses)
+        cursor.execute(f'SELECT * FROM products WHERE {where_sql} ORDER BY created_at DESC', tuple(params))
         return [dict(row) for row in cursor.fetchall()]
     finally:
         conn.close()
