@@ -2,6 +2,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import os
+import uuid
 import json
 import sqlite3
 import base64
@@ -98,6 +99,8 @@ if "cart" not in st.session_state:
     st.session_state.cart = {}
 if "selected_product_id" not in st.session_state:
     st.session_state.selected_product_id = None
+if "editing_product_id" not in st.session_state:
+    st.session_state.editing_product_id = None
 if "current_page" not in st.session_state:
     st.session_state.current_page = "shop"
 if "animated_item" not in st.session_state:
@@ -108,12 +111,12 @@ if "pending_verification_code_test" not in st.session_state:
     st.session_state.pending_verification_code_test = None
 
 
-# Auto-login për klientët me sesion të ruajtur
+# Auto-login për përdoruesit me sesion të ruajtur
 if not st.session_state.authenticated:
     if "user" in st.query_params:
         saved_username = st.query_params["user"]
         user_data = database.get_user_by_identifier(saved_username)
-        if user_data and user_data.get('role') != 'admin':
+        if user_data:
             st.session_state.authenticated = True
             st.session_state.current_user = user_data
         else:
@@ -130,6 +133,18 @@ def fetch_product_by_id(pid):
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else None
+
+def save_updated_product(pid, name, brand, category, skin_type, price, description, eu_cert, is_orig, img_path):
+    conn = sqlite3.connect('korea_beauty.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        UPDATE products 
+        SET name = ?, brand = ?, category = ?, skin_type = ?, price = ?, 
+            description = ?, eu_certified = ?, is_original = ?, image_url = ?
+        WHERE id = ?
+    ''', (name, brand, category, skin_type, price, description, 1 if eu_cert else 0, 1 if is_orig else 0, img_path, pid))
+    conn.commit()
+    conn.close()
 
 # ==========================================
 # 🎆 ANIMACIONI I SHPORTËS
@@ -1142,6 +1157,7 @@ def render_product_detail_page(product_id):
 # ==========================================
 def render_client_app():
     user = st.session_state.current_user
+    is_admin = bool(user and user.get('role') == 'admin')
     username_display = (user.get('full_name') or user.get('username') or "Vizitor") if user else "Vizitor"
 
     total_cart_items = sum(item['qty'] for item in st.session_state.cart.values())
@@ -1153,16 +1169,18 @@ def render_client_app():
         trigger_visual_cart_animation(item_to_animate['name'], item_to_animate['price'])
         st.session_state.animated_item = None
 
-    # SIDEBAR VETEM PER KLIENT
+    # SIDEBAR
     with st.sidebar:
         logo_uri = get_logo_data_uri()
         logo_sidebar = f'<img src="{logo_uri}" alt="Korea Pure Beauty" class="sidebar-logo-img" />' if logo_uri else '<div class="profile-title">🌸 Korea Pure Beauty</div>'
+        role_badge_bg = '#ff4757' if is_admin else ('#2ed573' if st.session_state.authenticated else '#ff758c')
+        role_badge_text = '👑 ADMINISTRATOR' if is_admin else ('🛍️ KLIENT' if st.session_state.authenticated else '🌸 DYQANI')
         st.markdown(f"""
         <div class="profile-card">
             {logo_sidebar}
             <div style="margin: 6px 0 8px 0;">
-                <span style="background: {'#2ed573' if st.session_state.authenticated else '#ff758c'}; color: white; padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">
-                    {'🛍️ KLIENT' if st.session_state.authenticated else '🌸 DYQANI'}
+                <span style="background: {role_badge_bg}; color: white; padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">
+                    {role_badge_text}
                 </span>
             </div>
             <div class="profile-user-text">
@@ -1171,12 +1189,21 @@ def render_client_app():
         </div>
         """, unsafe_allow_html=True)
 
-        st.caption("MENYJA E BLERJEVE")
-
-        nav_buttons = [
-            ("shop", "🛍️ Dyqani / Katalogu"),
-            ("cart", f"🛒 Shporta{cart_badge}")
-        ]
+        if is_admin:
+            st.caption("MENYJA E ADMINISTRATORIT")
+            nav_buttons = [
+                ("shop", "🛍️ Dyqani / Katalogu"),
+                ("cart", f"🛒 Shporta{cart_badge}"),
+                ("add", "➕ Shto Produkt (Drag & Drop)"),
+                ("orders", "📦 Porositë e Ardhura"),
+                ("inventory", "📊 Paneli i Inventarit")
+            ]
+        else:
+            st.caption("MENYJA E BLERJEVE")
+            nav_buttons = [
+                ("shop", "🛍️ Dyqani / Katalogu"),
+                ("cart", f"🛒 Shporta{cart_badge}")
+            ]
 
         for key_name, label in nav_buttons:
             is_active = (st.session_state.current_page == key_name)
@@ -1184,6 +1211,7 @@ def render_client_app():
             if st.button(label, key=f"btn_nav_{key_name}", use_container_width=True, type=btn_type):
                 st.session_state.current_page = key_name
                 st.session_state.selected_product_id = None
+                st.session_state.editing_product_id = None
                 st.rerun()
 
         if st.session_state.authenticated:
@@ -1200,6 +1228,15 @@ def render_client_app():
                         st.success("🎉 " + msg)
                     else:
                         st.error(msg)
+
+            if st.button("🚪 Dil nga Llogaria", key="side_btn_logout", use_container_width=True, type="secondary"):
+                st.session_state.authenticated = False
+                st.session_state.current_user = None
+                st.session_state.selected_product_id = None
+                st.session_state.editing_product_id = None
+                st.session_state.current_page = "shop"
+                st.query_params.clear()
+                st.rerun()
 
     # ==========================================
     # 🌟 TOP HEADER BAR (Kyçja / Regjistrimi në të Djathtë Lart)
@@ -1301,20 +1338,17 @@ def render_client_app():
                     # 1. HYR NË LLOGARI (EMAIL OSE USERNAME)
                     # ------------------------------------------
                     with tab_l:
-                        st.markdown("#### Hyrje për Klientët")
+                        st.markdown("#### Hyrje në Llogari")
                         lu = st.text_input("Email ose Emri i përdoruesit", key="top_lu", placeholder="p.sh. emri@gmail.com")
                         lp = st.text_input("Fjalëkalimi", type="password", key="top_lp")
                         if st.button("Hyr Tani", key="top_btn_l", use_container_width=True, type="primary"):
                             if lu and lp:
                                 succ, res = auth.login_user(lu, lp)
                                 if succ:
-                                    if res.get('role') == 'admin':
-                                        st.error("⚠️ Kjo është llogari Administratori! Ju lutem kyçuni në panelin e Administratorit në portin 8501.")
-                                    else:
-                                        st.session_state.authenticated = True
-                                        st.session_state.current_user = res
-                                        st.query_params["user"] = res['username']
-                                        st.rerun()
+                                    st.session_state.authenticated = True
+                                    st.session_state.current_user = res
+                                    st.query_params["user"] = res['username']
+                                    st.rerun()
                                 else:
                                     if isinstance(res, str) and res.startswith("UNVERIFIED:"):
                                         u_email = res.split(":", 1)[1]
@@ -1605,5 +1639,278 @@ def render_client_app():
                             st.balloons()
                             st.success(f"🎉 Faleminderit {b_name}! Porosia juaj #{order_id} prej €{final:.2f} u regjistrua me sukses!")
                             st.session_state.cart = {}
+
+    # ----------------------------------------------------
+    # 3. SHTIMI I PRODUKTIT (VETËM ADMIN)
+    # ----------------------------------------------------
+    elif is_admin and current_page == "add":
+        st.title("➕ Shto Produkt të Ri")
+        st.caption("E dukshme VETËM për Administratorët.")
+
+        with st.form("form_add_p", clear_on_submit=True):
+            col_l, col_r = st.columns([1.2, 1])
+            with col_l:
+                name = st.text_input("Emri i Produktit *", placeholder="p.sh. Heartleaf 77% Soothing Toner")
+                brand = st.selectbox("Marka Koreane *", [
+                    "Beauty of Joseon", "COSRX", "Anua", "Skin1004", "Round Lab",
+                    "Laneige", "Some By Mi", "Haruharu Wonder", "I'm From", "Torriden", "Tjetër"
+                ])
+                if brand == "Tjetër":
+                    brand = st.text_input("Shkruaj markën e re *")
+                category = st.selectbox("Kategoria *", ["Cleanser (Pastrues)", "Toner", "Serum / Essence", "Moisturizer (Krem)", "Sunscreen (SPF)", "Maskë", "Eye Cream"])
+                skin_type = st.selectbox("Lloji i Lëkurës *", ["Të gjitha tipet", "E Thata", "E Yndyrshme", "Mikse (Kombinuar)", "Sensitive", "Me Akne / Poret"])
+                price = st.number_input("Çmimi (€) *", min_value=1.0, value=19.50, step=0.50, format="%.2f")
+
+            with col_r:
+                uploaded_img = st.file_uploader("📷 Ngarko Foton me Drag & Drop", type=["png", "jpg", "jpeg", "webp"])
+                if uploaded_img is not None:
+                    st.image(uploaded_img, caption="Parapamje", width=160)
+                eu_cert = st.checkbox("🇪🇺 Standarde të BE-së", value=True)
+                is_orig = st.checkbox("🇰🇷 100% Origjinale nga Korea", value=True)
+
+            desc = st.text_area("Përshkrimi dhe Përbërësit e Produktit *", placeholder="Shkruaj përfitimet, përbërësit (p.sh. Centella, Rice, Niacinamide)...", height=220)
+
+            if st.form_submit_button("💾 Publiko Produktin", type="primary", use_container_width=True):
+                if not name or not brand or price <= 0:
+                    st.error("Plotësoni fushat e detyrueshme.")
+                else:
+                    saved_path = ""
+                    if uploaded_img is not None:
+                        ext = uploaded_img.name.split(".")[-1]
+                        unique_name = f"{uuid.uuid4().hex[:10]}.{ext}"
+                        saved_path = os.path.join(UPLOAD_DIR, unique_name).replace("\\", "/")
+                        with open(saved_path, "wb") as f:
+                            f.write(uploaded_img.getbuffer())
+
+                    database.create_product(name, brand, category, skin_type, price, desc, eu_cert, is_orig, saved_path)
+                    st.success(f"🎉 Produkti '{name}' u publikua me sukses në dyqan!")
+
+    # ----------------------------------------------------
+    # 4. POROSITË (VETËM ADMIN)
+    # ----------------------------------------------------
+    elif is_admin and current_page == "orders":
+        st.title("📦 Menaxhimi i Porosive të Klientëve")
+        st.markdown("<p style='font-size: 0.95rem; opacity: 0.85;'>Këtu mund të shikoni, konfirmoni, ndryshoni statusin dhe fshini porositë me kujdes të veçantë.</p>", unsafe_allow_html=True)
+
+        orders = database.get_all_orders()
+        total_count = len(orders)
+
+        pending_count = sum(1 for o in orders if "Pritje" in o.get('status', '') or "Re" in o.get('status', ''))
+        confirmed_count = sum(1 for o in orders if "Konfirmuar" in o.get('status', ''))
+        delivered_count = sum(1 for o in orders if "Marrë" in o.get('status', '') or "Dërguar" in o.get('status', ''))
+
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("📦 Gjithsej Porosi", total_count)
+        m2.metric("⏳ Në Pritje", pending_count)
+        m3.metric("✅ Të Konfirmuara", confirmed_count)
+        m4.metric("🚚 Të Marra / Dërguara", delivered_count)
+
+        st.divider()
+
+        f_col1, f_col2 = st.columns([2, 1.2])
+        with f_col1:
+            search_order = st.text_input("🔍 Kërko sipas emrit, telefonit ose qytetit...", key="admin_order_search")
+        with f_col2:
+            status_filter = st.selectbox(
+                "Filtro sipas Statusit",
+                ["Të gjitha", "⏳ Në Pritje", "✅ Të Konfirmuara", "🚚 Të Marra / Dërguara"],
+                key="admin_order_filter"
+            )
+
+        filtered_orders = orders
+        if search_order.strip():
+            sq = search_order.strip().lower()
+            filtered_orders = [
+                o for o in filtered_orders
+                if sq in o['buyer_name'].lower() or sq in o['phone'].lower() or sq in o['city'].lower() or sq in o['address'].lower() or str(o['id']) == sq
+            ]
+
+        if status_filter == "⏳ Në Pritje":
+            filtered_orders = [o for o in filtered_orders if "Pritje" in o.get('status', '') or "Re" in o.get('status', '')]
+        elif status_filter == "✅ Të Konfirmuara":
+            filtered_orders = [o for o in filtered_orders if "Konfirmuar" in o.get('status', '')]
+        elif status_filter == "🚚 Të Marra / Dërguara":
+            filtered_orders = [o for o in filtered_orders if "Marrë" in o.get('status', '') or "Dërguar" in o.get('status', '')]
+
+        if not filtered_orders:
+            st.info("💡 Nuk u gjet asnjë porosi me këto kritere.")
+        else:
+            st.caption(f"Po shfaqen **{len(filtered_orders)}** porosi nga **{total_count}** gjithsej:")
+            for o in filtered_orders:
+                st_val = o.get('status', 'E Re (Në Pritje)')
+                if "Konfirmuar" in st_val:
+                    status_badge = "<span style='background: #10ac84; color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase;'>✅ E Konfirmuar</span>"
+                elif "Marrë" in st_val or "Dërguar" in st_val:
+                    status_badge = "<span style='background: #2e86de; color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase;'>🚚 E Marrë / E Dërguar</span>"
+                else:
+                    status_badge = "<span style='background: #f39c12; color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; text-transform: uppercase;'>⏳ Në Pritje</span>"
+
+                expander_title = f"Porosia #{o['id']} — {o['buyer_name']} ({o['city']}) — €{o['total_price']:.2f} — [{st_val}]"
+                with st.expander(expander_title):
+                    st.markdown(f"<div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;'>"
+                                f"<span style='font-size: 1.1rem; font-weight: 700;'>Porosia #{o['id']}</span>"
+                                f"<div>{status_badge}</div>"
+                                f"</div>", unsafe_allow_html=True)
+
+                    col_det, col_items = st.columns([1.2, 1.4])
+                    with col_det:
+                        st.markdown("#### 👤 Të Dhënat e Klientit")
+                        st.write(f"• **Emri dhe Mbiemri:** `{o['buyer_name']}`")
+                        st.write(f"• **Numri i Telefonit:** `{o['phone']}`")
+                        st.write(f"• **Qyteti:** `{o['city']}`")
+                        st.write(f"• **Adresa e Dërgesës:** {o['address']}")
+                        st.write(f"• **Data e Porosisë:** `{o['created_at']}`")
+
+                    with col_items:
+                        st.markdown("#### 🛍️ Artikujt e Porositur")
+                        try:
+                            items_data = json.loads(o['items_json'])
+                            for itm in items_data:
+                                item_total = itm.get('price', 0) * itm.get('qty', 1)
+                                brand_str = f"({itm.get('brand')}) " if itm.get('brand') else ""
+                                st.write(f"• **{itm.get('name')}** {brand_str}— **{itm.get('qty')}x** á €{itm.get('price', 0):.2f} = **€{item_total:.2f}**")
+                        except Exception:
+                            st.write(o['items_json'])
+                        st.markdown(f"<div style='font-size: 1.25rem; font-weight: 800; color: #ff758c; margin-top: 10px; text-align: right;'>Totali: €{o['total_price']:.2f}</div>", unsafe_allow_html=True)
+
+                    st.write("")
+                    st.divider()
+                    st.markdown("##### ⚡ Veprimet me Porosinë:")
+                    act1, act2, act3, act4 = st.columns([1.3, 1.6, 1.2, 1.1])
+
+                    with act1:
+                        if st.button("✅ Konfirmo", key=f"btn_confirm_{o['id']}", use_container_width=True, type="primary" if "Konfirmuar" not in st_val else "secondary"):
+                            database.update_order_status(o['id'], "E Konfirmuar")
+                            st.success(f"Porosia #{o['id']} u konfirmua me sukses!")
+                            st.rerun()
+
+                    with act2:
+                        if st.button("🚚 Shëno si e Marrë", key=f"btn_receive_{o['id']}", use_container_width=True, type="primary" if "Marrë" in st_val else "secondary"):
+                            database.update_order_status(o['id'], "E Marrë / E Dërguar")
+                            st.success(f"Porosia #{o['id']} u shënua si e marrë / dërguar!")
+                            st.rerun()
+
+                    with act3:
+                        if st.button("⏳ Kthe në Pritje", key=f"btn_pending_{o['id']}", use_container_width=True, type="secondary"):
+                            database.update_order_status(o['id'], "E Re (Në Pritje)")
+                            st.info(f"Porosia #{o['id']} u kthye në pritje.")
+                            st.rerun()
+
+                    with act4:
+                        with st.popover("🗑️ Fshij", use_container_width=True):
+                            st.markdown(f"**A jeni i sigurt për fshirjen e porosisë #{o['id']}?**")
+                            st.caption("⚠️ Kjo porosi do të fshihet përfundimisht nga baza e të dhënave.")
+                            if st.button("Po, fshije!", key=f"btn_delete_confirm_{o['id']}", type="primary", use_container_width=True):
+                                database.delete_order(o['id'])
+                                st.warning(f"Porosia #{o['id']} u fshi me sukses!")
+                                st.rerun()
+
+    # ----------------------------------------------------
+    # 5. INVENTARI & MODIFIKIMI (VETËM ADMIN)
+    # ----------------------------------------------------
+    elif is_admin and current_page == "inventory":
+        st.title("📊 Paneli i Inventarit & Modifikimit")
+        products = database.get_all_products()
+
+        m1, m2, m3 = st.columns(3)
+        m1.metric("📦 Produkte", len(products))
+        m2.metric("💰 Vlera", f"€{sum(p['price'] for p in products):.2f}" if products else "€0.00")
+        m3.metric("🇪🇺 Standard BE", f"{sum(1 for p in products if p['eu_certified'])} artikuj")
+
+        st.divider()
+
+        if st.session_state.editing_product_id is not None:
+            p_to_edit = fetch_product_by_id(st.session_state.editing_product_id)
+            if p_to_edit:
+                with st.container(border=True):
+                    st.subheader(f"✏️ Modifiko Produktin: '{p_to_edit['name']}'")
+
+                    with st.form(f"edit_form_{p_to_edit['id']}"):
+                        e_col1, e_col2 = st.columns([1.2, 1])
+
+                        with e_col1:
+                            edit_name = st.text_input("Emri i Produktit", value=p_to_edit['name'])
+                            edit_brand = st.text_input("Marka", value=p_to_edit['brand'])
+
+                            categories = ["Cleanser (Pastrues)", "Toner", "Serum / Essence", "Moisturizer (Krem)", "Sunscreen (SPF)", "Maskë", "Eye Cream", "Tjetër"]
+                            cur_cat_idx = categories.index(p_to_edit['category']) if p_to_edit['category'] in categories else 0
+                            edit_category = st.selectbox("Kategoria", categories, index=cur_cat_idx)
+
+                            skin_types = ["Të gjitha tipet", "E Thata", "E Yndyrshme", "Mikse (Kombinuar)", "Sensitive", "Me Akne / Poret"]
+                            cur_skin_idx = skin_types.index(p_to_edit['skin_type']) if p_to_edit['skin_type'] in skin_types else 0
+                            edit_skin = st.selectbox("Lloji i Lëkurës", skin_types, index=cur_skin_idx)
+
+                            edit_price = st.number_input("Çmimi (€)", min_value=0.5, value=float(p_to_edit['price']), step=0.50, format="%.2f")
+
+                        with e_col2:
+                            st.write("📷 **Foto e Produktit:**")
+                            if p_to_edit['image_url']:
+                                if os.path.exists(p_to_edit['image_url']):
+                                    st.image(p_to_edit['image_url'], width=120, caption="Fotoja Aktuale")
+                                elif p_to_edit['image_url'].startswith("http"):
+                                    st.image(p_to_edit['image_url'], width=120, caption="Fotoja Aktuale")
+
+                            new_uploaded_img = st.file_uploader("Ngarko Foto të Re (Opsionale)", type=["png", "jpg", "jpeg", "webp"])
+
+                            edit_eu = st.checkbox("🇪🇺 Standarde të BE-së", value=bool(p_to_edit['eu_certified']))
+                            edit_orig = st.checkbox("🇰🇷 100% Origjinale nga Korea", value=bool(p_to_edit['is_original']))
+
+                        edit_desc = st.text_area("Përshkrimi & Përbërësit", value=p_to_edit['description'] if p_to_edit['description'] else "", height=220)
+
+                        btn_c1, btn_c2 = st.columns([1, 1])
+                        with btn_c1:
+                            save_btn = st.form_submit_button("💾 Ruaj Ndryshimet", type="primary", use_container_width=True)
+                        with btn_c2:
+                            cancel_btn = st.form_submit_button("❌ Anulo", type="secondary", use_container_width=True)
+
+                        if save_btn:
+                            final_img_path = p_to_edit['image_url']
+                            if new_uploaded_img is not None:
+                                ext = new_uploaded_img.name.split(".")[-1]
+                                unique_name = f"{uuid.uuid4().hex[:10]}.{ext}"
+                                final_img_path = os.path.join(UPLOAD_DIR, unique_name).replace("\\", "/")
+                                with open(final_img_path, "wb") as f:
+                                    f.write(new_uploaded_img.getbuffer())
+
+                            save_updated_product(
+                                pid=p_to_edit['id'],
+                                name=edit_name,
+                                brand=edit_brand,
+                                category=edit_category,
+                                skin_type=edit_skin,
+                                price=edit_price,
+                                description=edit_desc,
+                                eu_cert=edit_eu,
+                                is_orig=edit_orig,
+                                img_path=final_img_path
+                            )
+                            st.session_state.editing_product_id = None
+                            st.success("✅ Ndryshimet u ruajtën me sukses!")
+                            st.rerun()
+
+                        if cancel_btn:
+                            st.session_state.editing_product_id = None
+                            st.rerun()
+
+                st.divider()
+
+        if products:
+            for p in products:
+                with st.expander(f"📦 {p['name']} ({p['brand']}) — €{p['price']:.2f}"):
+                    c1, c2, c3 = st.columns([3, 1, 1])
+                    with c1:
+                        st.write(f"**Marka:** {p['brand']} | **Kategoria:** {p['category']} | **Lëkura:** `{p['skin_type']}`")
+                        st.caption(f"BE: {'✅ Po' if p['eu_certified'] else '❌ Jo'} | Origjinale: {'✅ Po' if p['is_original'] else '❌ Jo'}")
+                        if p['description']:
+                            st.write(f"ℹ️ {p['description']}")
+                    with c2:
+                        if st.button("✏️ Modifiko", key=f"edit_btn_{p['id']}", use_container_width=True):
+                            st.session_state.editing_product_id = p['id']
+                            st.rerun()
+                    with c3:
+                        if st.button("🗑️ Fshij", key=f"inv_del_{p['id']}", use_container_width=True):
+                            database.delete_product(p['id'])
+                            st.warning("Produkti u fshi!")
+                            st.rerun()
 
 render_client_app()
