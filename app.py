@@ -912,6 +912,227 @@ st.markdown("""
         font-weight: 800;
         margin-bottom: 4px;
     }
+
+    /* ================================================= */
+    /* 📱 7. MOBILE RESPONSIVE ENGINE (MAX-WIDTH: 768px) */
+    /* ================================================= */
+    @media (max-width: 768px) {
+        /* 1. Global Viewport & Container Spacing */
+        .stApp {
+            overflow-x: hidden !important;
+        }
+        .main .block-container {
+            padding-top: 1.2rem !important;
+            padding-bottom: 2.5rem !important;
+            padding-left: 0.65rem !important;
+            padding-right: 0.65rem !important;
+            max-width: 100% !important;
+        }
+
+        /* 2. Prevent iOS Safari auto-zoom on input focus */
+        input, select, textarea, [data-baseweb="input"] input {
+            font-size: 16px !important;
+        }
+
+        /* 3. Touch-friendly Minimum Heights (44px) */
+        button, 
+        .stButton > button,
+        button[kind="primary"],
+        button[kind="secondary"],
+        div[data-baseweb="select"] > div {
+            min-height: 44px !important;
+            font-size: 0.92rem !important;
+        }
+
+        /* 4. Streamlit Column Stacking on Mobile */
+        div[data-testid="stHorizontalBlock"] {
+            flex-direction: column !important;
+            gap: 0.75rem !important;
+        }
+        div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+
+        /* Exception: keep 2-button action rows side by side on product cards */
+        div[class*="st-key-kpb_card_"] div[data-testid="stHorizontalBlock"] {
+            flex-direction: row !important;
+            gap: 0.5rem !important;
+        }
+        div[class*="st-key-kpb_card_"] div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+            width: 50% !important;
+            min-width: 50% !important;
+            max-width: 50% !important;
+            flex: 1 1 50% !important;
+        }
+
+        /* Exception: keep cart item image, text, and delete button horizontal */
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(button[key^="del_cart_"]) div[data-testid="stHorizontalBlock"] {
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 0.5rem !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(button[key^="del_cart_"]) div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(1) {
+            width: 22% !important;
+            min-width: 65px !important;
+            max-width: 80px !important;
+            flex: 0 0 auto !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(button[key^="del_cart_"]) div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(2) {
+            width: 52% !important;
+            flex: 1 1 auto !important;
+        }
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(button[key^="del_cart_"]) div[data-testid="stHorizontalBlock"] > div[data-testid="column"]:nth-child(3) {
+            width: 26% !important;
+            flex: 0 0 auto !important;
+            text-align: right !important;
+        }
+
+        /* Exception: Admin Order Action Buttons 2x2 grid on mobile */
+        div[data-testid="stHorizontalBlock"]:has(button[key^="btn_confirm_"]) {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(button[key^="btn_confirm_"]) > div[data-testid="column"] {
+            width: calc(50% - 4px) !important;
+            min-width: calc(50% - 4px) !important;
+            max-width: calc(50% - 4px) !important;
+            flex: 1 1 calc(50% - 4px) !important;
+            margin-bottom: 4px !important;
+        }
+
+        /* Exception: Admin Product Form Save/Cancel 50/50 buttons */
+        div[data-testid="stHorizontalBlock"]:has(button:has-text("Ruaj")) {
+            flex-direction: row !important;
+            gap: 8px !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has(button:has-text("Ruaj")) > div[data-testid="column"] {
+            width: 50% !important;
+            min-width: 50% !important;
+            max-width: 50% !important;
+            flex: 1 1 50% !important;
+        }
+
+        /* 5. Mobile Product Cards */
+        div[class*="st-key-kpb_card_"] {
+            height: auto !important;
+            min-height: 420px !important;
+            max-height: none !important;
+            padding: 12px 14px 14px 14px !important;
+            margin-bottom: 12px !important;
+            border-radius: 16px !important;
+        }
+        .card-img-wrap {
+            height: 175px !important;
+            min-height: 175px !important;
+            max-height: 175px !important;
+        }
+        .card-img-tag {
+            max-height: 175px !important;
+        }
+        .title-container {
+            height: auto !important;
+            min-height: 38px !important;
+            max-height: 48px !important;
+        }
+        .title-box {
+            font-size: 0.95rem !important;
+            line-height: 1.35 !important;
+        }
+        .desc-container {
+            height: auto !important;
+            min-height: 28px !important;
+            max-height: 40px !important;
+        }
+        .desc-box {
+            font-size: 0.80rem !important;
+        }
+        .badges-box {
+            flex-wrap: wrap !important;
+            height: auto !important;
+            min-height: 26px !important;
+            gap: 4px !important;
+        }
+        .price-box {
+            font-size: 1.35rem !important;
+            height: 30px !important;
+            margin: 6px 0 !important;
+        }
+
+        /* 6. Top Header Bar & Branding */
+        .top-header-brand-wrap {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 6px !important;
+            margin-bottom: 8px !important;
+        }
+        .kpb-hero-banner {
+            max-width: 100% !important;
+            border-radius: 12px !important;
+            margin: 0 0 14px 0 !important;
+        }
+        .kpb-hero-banner img {
+            max-height: 120px !important;
+            object-fit: cover !important;
+        }
+
+        /* 7. Metric Cards Grid */
+        div[data-testid="stMetric"] {
+            padding: 10px 14px !important;
+            margin-bottom: 8px !important;
+        }
+        div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+            font-size: 1.4rem !important;
+        }
+
+        /* 8. Tabs on Mobile */
+        button[data-baseweb="tab"] {
+            padding: 8px 12px !important;
+            font-size: 0.88rem !important;
+        }
+
+        /* 9. Popovers & Dialogs */
+        div[data-baseweb="popover"] {
+            max-width: 96vw !important;
+        }
+
+        /* 10. Login / Register page centered column expands to 100% on mobile */
+        div[data-testid="stHorizontalBlock"]:has([key="l_user"]) > div[data-testid="column"]:nth-child(1),
+        div[data-testid="stHorizontalBlock"]:has([key="l_user"]) > div[data-testid="column"]:nth-child(3) {
+            display: none !important;
+        }
+        div[data-testid="stHorizontalBlock"]:has([key="l_user"]) > div[data-testid="column"]:nth-child(2) {
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+        }
+    }
+
+    @media (max-width: 480px) {
+        /* Extra small devices (iPhone SE, small Androids) */
+        .main .block-container {
+            padding-left: 0.4rem !important;
+            padding-right: 0.4rem !important;
+        }
+        .card-img-wrap {
+            height: 160px !important;
+            min-height: 160px !important;
+            max-height: 160px !important;
+        }
+        .card-img-tag {
+            max-height: 160px !important;
+        }
+        div[class*="st-key-kpb_card_"] {
+            padding: 10px 10px 12px 10px !important;
+            min-height: 400px !important;
+        }
+        .hero-title {
+            font-size: 1.6rem !important;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1295,6 +1516,35 @@ def render_interactive_zoom_viewer(image_path: str, product_name: str, height: i
             text-align: center;
             line-height: 1.4;
         }}
+
+        @media (max-width: 768px) {{
+            .zoom-viewport {{
+                height: 310px !important;
+            }}
+            .zoom-controls {{
+                padding: 8px 10px !important;
+                gap: 6px !important;
+            }}
+            .z-btn {{
+                width: 38px !important;
+                height: 38px !important;
+                font-size: 16px !important;
+            }}
+            .z-reset-btn {{
+                font-size: 11px !important;
+                padding: 0 8px !important;
+            }}
+            .zoom-header {{
+                padding: 8px 12px !important;
+            }}
+            .zoom-title {{
+                font-size: 12px !important;
+            }}
+            .zoom-footer {{
+                font-size: 10px !important;
+                padding: 5px 8px !important;
+            }}
+        }}
     </style>
     </head>
     <body>
@@ -1307,7 +1557,7 @@ def render_interactive_zoom_viewer(image_path: str, product_name: str, height: i
             <div class="zoom-badge" id="zoomBadge">100%</div>
         </div>
 
-        <div class="zoom-viewport" id="zoomViewport" title="Rrotulloni mausin për zoom, tërhiqni për lëvizje">
+        <div class="zoom-viewport" id="zoomViewport" title="Rrotulloni mausin ose përdorni dy gishta për zoom">
             <img class="zoom-img" id="zoomImg" src="{img_data_uri}" alt="{clean_name}" />
         </div>
 
@@ -1322,7 +1572,7 @@ def render_interactive_zoom_viewer(image_path: str, product_name: str, height: i
         </div>
 
         <div class="zoom-footer">
-            💡 <em>Përdorni rrotën e mausit për Zoom In/Out. Kur është i zmadhuar, klikoni & tërhiqni foton.</em>
+            💡 <em>Rrotulloni mausin ose përdorni dy gishta (Pinch-to-Zoom) për zmadhim në telefon.</em>
         </div>
     </div>
 
@@ -1423,6 +1673,72 @@ def render_interactive_zoom_viewer(image_path: str, product_name: str, height: i
             }}
         }});
 
+        // Touch events for mobile touchscreens
+        let touchStartDist = 0;
+        let touchStartScale = 1;
+        let isTouchDragging = false;
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        function getTouchDist(e) {{
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            return Math.hypot(dx, dy);
+        }}
+
+        viewport.addEventListener('touchstart', (e) => {{
+            if (e.touches.length === 2) {{
+                touchStartDist = getTouchDist(e);
+                touchStartScale = scale;
+            }} else if (e.touches.length === 1 && scale > 1) {{
+                isTouchDragging = true;
+                touchStartX = e.touches[0].clientX - posX;
+                touchStartY = e.touches[0].clientY - posY;
+            }}
+        }}, {{ passive: true }});
+
+        viewport.addEventListener('touchmove', (e) => {{
+            if (e.touches.length === 2 && touchStartDist > 0) {{
+                e.preventDefault();
+                const dist = getTouchDist(e);
+                const factor = dist / touchStartDist;
+                setScale(touchStartScale * factor);
+            }} else if (e.touches.length === 1 && isTouchDragging && scale > 1) {{
+                e.preventDefault();
+                posX = e.touches[0].clientX - touchStartX;
+                posY = e.touches[0].clientY - touchStartY;
+                updateTransform();
+            }}
+        }}, {{ passive: false }});
+
+        viewport.addEventListener('touchend', (e) => {{
+            if (e.touches.length < 2) touchStartDist = 0;
+            if (e.touches.length === 0) isTouchDragging = false;
+        }});
+
+        // Mobile Double Tap for Quick Zoom
+        let lastTap = 0;
+        viewport.addEventListener('touchend', (e) => {{
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            if (tapLength < 300 && tapLength > 0 && e.changedTouches && e.changedTouches.length === 1) {{
+                e.preventDefault();
+                if (scale > 1.2) {{
+                    scale = 1;
+                    posX = 0;
+                    posY = 0;
+                    updateTransform();
+                }} else {{
+                    const rect = viewport.getBoundingClientRect();
+                    const touch = e.changedTouches[0];
+                    const targetX = touch.clientX - rect.left - rect.width / 2;
+                    const targetY = touch.clientY - rect.top - rect.height / 2;
+                    setScale(2.2, targetX, targetY);
+                }}
+            }}
+            lastTap = currentTime;
+        }});
+
         // Double click quick zoom
         viewport.addEventListener('dblclick', (e) => {{
             if (scale > 1.2) {{
@@ -1473,7 +1789,7 @@ def render_product_detail_page(product_id):
     col_img, col_info = st.columns([1.15, 1.35])
 
     with col_img:
-        render_interactive_zoom_viewer(p.get('image_url'), p.get('name'), height=550)
+        render_interactive_zoom_viewer(p.get('image_url'), p.get('name'), height=490)
 
     with col_info:
         st.markdown(f"<div class='brand-box' style='font-size: 1rem;'>{p['brand']}</div>", unsafe_allow_html=True)
