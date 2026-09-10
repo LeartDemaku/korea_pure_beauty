@@ -1619,5 +1619,4 @@ def render_client_app():
                             st.success(f"🎉 Faleminderit {b_name}! Porosia juaj #{order_id} prej €{final:.2f} u regjistrua me sukses!")
                             st.session_state.cart = {}
 
-if __name__ == '__main__':
-    render_client_app()
+render_client_app()
