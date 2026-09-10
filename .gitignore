@@ -8,10 +8,8 @@
 !.env.example
 
 # Baza e të dhënave lokale SQLite
-*.db
 *.sqlite
 *.sqlite3
-korea_beauty.db
 
 # Python Cache & Bytecode
 __pycache__/
@@ -39,6 +37,5 @@ venv.bak/
 .DS_Store
 Thumbs.db
 
-# Ngarkimet e fotove lokale
-uploads/*
-!uploads/.gitkeep
+# Ngarkimet e fotove lokale (përfshihen asetet e produkteve)
+# uploads/*

@@ -765,6 +765,7 @@ def get_image_data_uri(image_path: str) -> str:
         return "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&q=90"
     if image_path.startswith("http://") or image_path.startswith("https://"):
         return image_path
+    image_path = image_path.replace("\\", "/")
     if os.path.exists(image_path):
         mime, _ = mimetypes.guess_type(image_path)
         if not mime:
