@@ -419,24 +419,26 @@ st.markdown("""
     }
 
     .kpb-hero-banner {
-        width: 100%;
-        border-radius: 20px;
+        max-width: 580px;
+        margin: 0 auto 20px auto;
+        border-radius: 16px;
         overflow: hidden;
-        margin-bottom: 24px;
         border: 1px solid light-dark(#ffd1dc, rgba(255, 117, 140, 0.22));
         background: light-dark(linear-gradient(135deg, #ffffff 0%, #fff5f7 100%), rgba(255, 255, 255, 0.03));
-        box-shadow: light-dark(0 10px 30px rgba(255, 117, 140, 0.12), 0 10px 30px rgba(0, 0, 0, 0.35));
+        box-shadow: light-dark(0 6px 20px rgba(255, 117, 140, 0.12), 0 8px 24px rgba(0, 0, 0, 0.35));
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
     .kpb-hero-banner:hover {
         transform: translateY(-2px);
-        box-shadow: light-dark(0 14px 38px rgba(255, 117, 140, 0.22), 0 14px 38px rgba(0, 0, 0, 0.45));
+        box-shadow: light-dark(0 10px 28px rgba(255, 117, 140, 0.20), 0 12px 30px rgba(0, 0, 0, 0.40));
     }
     .kpb-hero-banner img {
         width: 100%;
+        max-height: 155px;
         height: auto;
         display: block;
         object-fit: contain;
+        margin: 0 auto;
     }
 
     .brand-subtext {
@@ -1229,8 +1231,8 @@ def render_client_app():
                     <div style="font-size: 1.05rem; font-weight: 800; color: #ff758c; letter-spacing: 0.5px;">
                         KOREA PURE BEAUTY
                     </div>
-                    <div class="brand-subtext" style="font-size: 0.8rem; font-weight: 500; opacity: 0.85;">
-                        Dyqani Zyrtar për Kujdesin ndaj Lëkurës Koreane
+                    <div class="brand-subtext" style="font-size: 0.82rem; font-weight: 600; opacity: 0.95;">
+                        ✨ Rituali Luksoz për një Lëkurë të Shëndetshme & me Shkëlqim Natyral
                     </div>
                 </div>
             </div>
@@ -1238,7 +1240,7 @@ def render_client_app():
         else:
             st.markdown(
                 "<div style='padding: 8px 0; font-size: 0.95rem; font-weight: 700; color: #ff758c;'>"
-                "🌸 KOREA PURE BEAUTY <span class='brand-subtext' style='font-weight: 500; font-size: 0.85rem; opacity: 0.85;'>| Dyqani Zyrtar për Kujdesin ndaj Lëkurës Koreane</span>"
+                "🌸 KOREA PURE BEAUTY <span class='brand-subtext' style='font-weight: 600; font-size: 0.85rem; opacity: 0.95;'>| ✨ Rituali Luksoz për një Lëkurë të Shëndetshme & me Shkëlqim Natyral</span>"
                 "</div>",
                 unsafe_allow_html=True
             )
@@ -1601,18 +1603,18 @@ def render_client_app():
                     st.write("#### 🚚 Të dhënat e Dërgesës")
                     b_name = st.text_input("Emri dhe Mbiemri *", placeholder="p.sh. Blerta Krasniqi")
                     b_phone = st.text_input("Numri i Telefonit *", placeholder="p.sh. +383 44 123 456")
-                    b_city = st.selectbox("Qyteti *", ["Prishtinë", "Tiranë", "Prizren", "Shkup", "Pejë", "Durrës", "Tetovë", "Gjilan", "Ferizaj", "Gjakovë", "Mitrovicë", "Vlorë", "Shkodër", "Tjetër"])
+                    b_city = st.text_input("Qyteti *", placeholder="Shkruani qytetin tuaj (p.sh. Prishtinë, Tiranë, Ferizaj, etj.)")
                     b_addr = st.text_area("Adresa e plotë e dërgesës *", placeholder="Rruga, Numri i banesës/shtëpisë...")
 
                     if st.button("🚀 Përfundo Porosinë Tani", type="primary", use_container_width=True):
-                        if not b_name or not b_phone or not b_addr:
-                            st.error("Plotësoni të gjitha fushat e dërgesës.")
+                        if not b_name.strip() or not b_phone.strip() or not b_city.strip() or not b_addr.strip():
+                            st.error("Plotësoni të gjitha fushat e dërgesës (përfshirë qytetin).")
                         else:
                             order_id = database.create_order(
-                                buyer_name=b_name,
-                                phone=b_phone,
-                                city=b_city,
-                                address=b_addr,
+                                buyer_name=b_name.strip(),
+                                phone=b_phone.strip(),
+                                city=b_city.strip(),
+                                address=b_addr.strip(),
                                 items=cart_items_list,
                                 total_price=final
                             )
