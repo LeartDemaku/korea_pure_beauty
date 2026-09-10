@@ -462,17 +462,17 @@ st.markdown("""
     div[class*="st-key-kpb_card_"] {
         background-color: light-dark(#ffffff, rgba(26, 27, 38, 0.90)) !important;
         border: 1px solid light-dark(#ffd5dc, rgba(255, 255, 255, 0.08)) !important;
-        border-radius: 18px !important;
-        box-shadow: light-dark(0 6px 20px rgba(255, 117, 140, 0.1), 0 6px 18px rgba(0,0,0,0.3)) !important;
+        border-radius: 16px !important;
+        box-shadow: light-dark(0 4px 16px rgba(255, 117, 140, 0.1), 0 4px 16px rgba(0,0,0,0.3)) !important;
         transition: all 0.3s ease !important;
-        height: 590px !important;
-        min-height: 590px !important;
-        max-height: 590px !important;
+        height: 470px !important;
+        min-height: 470px !important;
+        max-height: 470px !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: space-between !important;
         box-sizing: border-box !important;
-        padding: 12px 14px 14px 14px !important;
+        padding: 10px 12px 12px 12px !important;
         overflow: hidden !important;
     }
     html[data-theme="light"] div[class*="st-key-kpb_card_"] {
@@ -502,67 +502,67 @@ st.markdown("""
     /* Imazhi i produktit në kartë */
     .card-img-wrap {
         width: 100% !important;
-        height: 220px !important;
-        min-height: 220px !important;
-        max-height: 220px !important;
-        margin-bottom: 8px !important;
-        border-radius: 14px !important;
+        height: 160px !important;
+        min-height: 160px !important;
+        max-height: 160px !important;
+        margin-bottom: 6px !important;
+        border-radius: 12px !important;
         overflow: hidden !important;
         background: #ffffff !important;
-        box-shadow: 0 3px 12px rgba(0,0,0,0.06) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
     }
     .card-img-tag {
         height: 100% !important;
-        max-height: 220px !important;
+        max-height: 160px !important;
         width: 100% !important;
         object-fit: contain !important;
         background: #ffffff !important;
-        border-radius: 14px !important;
+        border-radius: 12px !important;
         padding: 4px !important;
         transition: transform 0.35s ease !important;
         image-rendering: -webkit-optimize-contrast !important;
     }
     div[class*="st-key-kpb_card_"]:hover .card-img-tag,
     div:has(.card-product-wrapper):hover .card-img-tag {
-        transform: scale(1.06) !important;
+        transform: scale(1.05) !important;
     }
 
     /* Brendi */
     .brand-box {
         color: #ff758c !important;
-        font-size: 0.78rem !important;
+        font-size: 0.72rem !important;
         font-weight: 800 !important;
         text-transform: uppercase !important;
-        letter-spacing: 1px !important;
-        height: 18px !important;
-        min-height: 18px !important;
-        max-height: 18px !important;
-        line-height: 18px !important;
-        margin-top: 2px !important;
-        margin-bottom: 3px !important;
+        letter-spacing: 0.8px !important;
+        height: 16px !important;
+        min-height: 16px !important;
+        max-height: 16px !important;
+        line-height: 16px !important;
+        margin-top: 1px !important;
+        margin-bottom: 2px !important;
         overflow: hidden !important;
         white-space: nowrap !important;
         text-overflow: ellipsis !important;
     }
 
-    /* Titulli i produktit - mbështjellës me lartësi strikte 44px */
+    /* Titulli i produktit */
     .title-container {
-        height: 44px !important;
-        min-height: 44px !important;
-        max-height: 44px !important;
-        margin-bottom: 4px !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+        margin-bottom: 2px !important;
         overflow: hidden !important;
         display: flex !important;
         align-items: flex-start !important;
     }
     .title-box {
-        font-size: 1.0rem !important;
+        font-size: 0.88rem !important;
         font-weight: 700 !important;
         color: light-dark(#0f172a, #ffffff) !important;
-        line-height: 1.35 !important;
+        line-height: 1.3 !important;
         overflow: hidden !important;
         display: -webkit-box !important;
         -webkit-line-clamp: 2 !important;
@@ -572,20 +572,20 @@ st.markdown("""
     html[data-theme="light"] .title-box { color: #0f172a !important; }
     html[data-theme="dark"] .title-box { color: #ffffff !important; }
 
-    /* Përshkrimi i produktit - mbështjellës me lartësi strikte 38px */
+    /* Përshkrimi i produktit */
     .desc-container {
-        height: 38px !important;
-        min-height: 38px !important;
-        max-height: 38px !important;
-        margin-bottom: 6px !important;
+        height: 30px !important;
+        min-height: 30px !important;
+        max-height: 30px !important;
+        margin-bottom: 4px !important;
         overflow: hidden !important;
         display: flex !important;
         align-items: flex-start !important;
     }
     .desc-box {
-        font-size: 0.82rem !important;
+        font-size: 0.75rem !important;
         color: light-dark(#475569, #c8d6e5) !important;
-        line-height: 1.35 !important;
+        line-height: 1.3 !important;
         overflow: hidden !important;
         display: -webkit-box !important;
         -webkit-line-clamp: 2 !important;
@@ -595,27 +595,28 @@ st.markdown("""
     html[data-theme="light"] .desc-box { color: #475569 !important; }
     html[data-theme="dark"] .desc-box { color: #c8d6e5 !important; }
 
-    /* Bexhet (Badges) - lartësi fikse 52px */
+    /* Bexhet (Badges) */
     .badges-box {
-        height: 52px !important;
-        min-height: 52px !important;
-        max-height: 52px !important;
+        height: 24px !important;
+        min-height: 24px !important;
+        max-height: 24px !important;
         overflow: hidden !important;
         display: flex !important;
-        flex-wrap: wrap !important;
-        gap: 4px !important;
-        align-content: flex-start !important;
-        margin-bottom: 6px !important;
+        flex-wrap: nowrap !important;
+        gap: 3px !important;
+        align-items: center !important;
+        margin-bottom: 4px !important;
     }
 
     .badge-tag {
-        display: inline-block !important;
-        padding: 3px 8px !important;
-        border-radius: 6px !important;
-        font-size: 0.70rem !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        padding: 2px 6px !important;
+        border-radius: 4px !important;
+        font-size: 0.63rem !important;
         font-weight: 800 !important;
         text-transform: uppercase !important;
-        letter-spacing: 0.5px !important;
+        letter-spacing: 0.3px !important;
         margin: 0 !important;
         white-space: nowrap !important;
     }
@@ -623,18 +624,18 @@ st.markdown("""
     .badge-eu { background-color: #2e86de !important; color: #ffffff !important; }
     .badge-skin { background-color: #ee5253 !important; color: #ffffff !important; }
 
-    /* Çmimi - lartësi fikse 30px */
+    /* Çmimi */
     .price-box {
-        font-size: 1.35rem !important;
+        font-size: 1.20rem !important;
         font-weight: 800 !important;
         color: #ff758c !important;
-        height: 30px !important;
-        min-height: 30px !important;
-        max-height: 30px !important;
-        line-height: 30px !important;
+        height: 26px !important;
+        min-height: 26px !important;
+        max-height: 26px !important;
+        line-height: 26px !important;
         display: flex !important;
         align-items: center !important;
-        margin-bottom: 6px !important;
+        margin-bottom: 4px !important;
     }
 
     .detail-title-text {
@@ -1501,7 +1502,7 @@ def render_main_app():
         cols = st.columns(3)
         for idx, p in enumerate(products):
             with cols[idx % 3]:
-                with st.container(border=True, height=590, key=f"kpb_card_{p['id']}"):
+                with st.container(border=True, height=470, key=f"kpb_card_{p['id']}"):
                     card_img_uri = get_image_data_uri(p['image_url'])
                     clean_name = html.escape(p['name'])
                     clean_brand = html.escape(p['brand'])
