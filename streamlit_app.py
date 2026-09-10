@@ -5,6 +5,7 @@ import os
 import json
 import sqlite3
 import base64
+import io
 import mimetypes
 import html
 import database
@@ -31,24 +32,45 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+@st.cache_data(show_spinner=False)
 def get_logo_data_uri() -> str:
     if os.path.exists(LOGO_PATH):
         try:
-            with open(LOGO_PATH, "rb") as f:
-                return f"data:image/png;base64,{base64.b64encode(f.read()).decode('utf-8')}"
+            with Image.open(LOGO_PATH) as img:
+                img = img.copy()
+                img.thumbnail((300, 300), Image.Resampling.LANCZOS)
+                buf = io.BytesIO()
+                img.save(buf, format="WEBP", quality=85)
+                b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+                return f"data:image/webp;base64,{b64}"
         except Exception:
-            pass
+            try:
+                with open(LOGO_PATH, "rb") as f:
+                    return f"data:image/png;base64,{base64.b64encode(f.read()).decode('utf-8')}"
+            except Exception:
+                pass
     return ""
 
+@st.cache_data(show_spinner=False)
 def get_banner_data_uri() -> str:
     if os.path.exists(BANNER_PATH):
         try:
-            with open(BANNER_PATH, "rb") as f:
-                return f"data:image/png;base64,{base64.b64encode(f.read()).decode('utf-8')}"
+            with Image.open(BANNER_PATH) as img:
+                img = img.copy()
+                img.thumbnail((700, 250), Image.Resampling.LANCZOS)
+                buf = io.BytesIO()
+                img.save(buf, format="WEBP", quality=85)
+                b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+                return f"data:image/webp;base64,{b64}"
         except Exception:
-            pass
+            try:
+                with open(BANNER_PATH, "rb") as f:
+                    return f"data:image/png;base64,{base64.b64encode(f.read()).decode('utf-8')}"
+            except Exception:
+                pass
     return ""
 
+@st.cache_data(show_spinner=False)
 def get_favicon_data_uri() -> str:
     if os.path.exists(FAVICON_PATH):
         try:
@@ -62,8 +84,10 @@ ADMIN_NOTIFICATION_EMAIL = "leart.demaku2006@gmail.com"
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# Inicjalizojmë bazën
-database.init_database()
+# Inicjalizojmë bazën vetëm një herë për sesion
+if "db_initialized" not in st.session_state:
+    database.init_database()
+    st.session_state.db_initialized = True
 
 # Session State për Klientin
 if "authenticated" not in st.session_state:
@@ -210,71 +234,20 @@ def trigger_visual_cart_animation(product_name, product_price):
     components.html(animation_html, height=0, width=0)
 
 # ==========================================
-# 💎 DIZAJNI ADAPTIV (LIGHT & DARK THEME) & FAVICON SYNC
+# 💎 DIZAJNI ADAPTIV (LIGHT & DARK THEME)
 # ==========================================
-# Sinkronizim i menjëhershëm me menynë Light/Dark dhe vendosja e Favicon zyrtar
-fav_data_uri = get_favicon_data_uri()
-components.html(f"""
-<script>
-(function() {{
-    function setFavicon() {{
-        try {{
-            const pDoc = window.parent.document;
-            if (!pDoc) return;
-            let link = pDoc.querySelector("link[rel*='icon']");
-            if (!link) {{
-                link = pDoc.createElement('link');
-                link.rel = 'shortcut icon';
-                pDoc.getElementsByTagName('head')[0].appendChild(link);
-            }}
-            link.type = 'image/png';
-            if ('{fav_data_uri}') {{
-                link.href = '{fav_data_uri}';
-            }}
-        }} catch(e) {{}}
-    }}
-    setFavicon();
-
-    function syncTheme() {{
-        try {{
-            const pDoc = window.parent.document;
-            if (!pDoc) return;
-            const app = pDoc.querySelector('[data-testid="stApp"]');
-            if (!app) return;
-            const cs = window.parent.getComputedStyle(app);
-            let isLight = false;
-            if (cs.colorScheme === 'light') {{
-                isLight = true;
-            }} else if (cs.colorScheme === 'dark') {{
-                isLight = false;
-            }} else {{
-                const bg = cs.backgroundColor;
-                const m = bg.match(/\\d+/g);
-                if (m && m.length >= 3) {{
-                    const brightness = (parseInt(m[0])*299 + parseInt(m[1])*587 + parseInt(m[2])*114) / 1000;
-                    if (brightness > 128) isLight = true;
-                }}
-            }}
-            const mode = isLight ? 'light' : 'dark';
-            if (pDoc.documentElement.getAttribute('data-theme') !== mode) {{
-                pDoc.documentElement.setAttribute('data-theme', mode);
-                pDoc.body.setAttribute('data-theme', mode);
-                app.setAttribute('data-theme', mode);
-            }}
-        }} catch(e) {{}}
-    }}
-    syncTheme();
-    setInterval(syncTheme, 250);
-}})();
-</script>
-""", height=0, width=0)
-
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
     
     :root {
         color-scheme: light dark;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            color-scheme: dark;
+        }
     }
 
     .stApp, p, h1, h2, h3, h4, h5, h6, label {
@@ -761,29 +734,40 @@ st.markdown("""
 
 
 # ==========================================
-# 🔍 INTERACTIVE HD ZOOM VIEWER
+# 🔍 INTERACTIVE HD ZOOM VIEWER & IMAGE OPTIMIZATION
 # ==========================================
-def get_image_data_uri(image_path: str) -> str:
+@st.cache_data(show_spinner=False)
+def get_image_data_uri(image_path: str, max_dim: int = 400, quality: int = 82) -> str:
     if not image_path:
         return "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&q=90"
     if image_path.startswith("http://") or image_path.startswith("https://"):
         return image_path
     image_path = image_path.replace("\\", "/")
     if os.path.exists(image_path):
-        mime, _ = mimetypes.guess_type(image_path)
-        if not mime:
-            mime = "image/png" if image_path.lower().endswith(".png") else "image/jpeg"
         try:
-            with open(image_path, "rb") as f:
-                b64 = base64.b64encode(f.read()).decode("utf-8")
-            return f"data:{mime};base64,{b64}"
+            with Image.open(image_path) as img:
+                img = img.copy()
+                if img.width > max_dim or img.height > max_dim:
+                    img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+                buf = io.BytesIO()
+                img.save(buf, format="WEBP", quality=quality)
+                b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+                return f"data:image/webp;base64,{b64}"
         except Exception:
-            return "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&q=90"
+            try:
+                mime, _ = mimetypes.guess_type(image_path)
+                if not mime:
+                    mime = "image/png" if image_path.lower().endswith(".png") else "image/jpeg"
+                with open(image_path, "rb") as f:
+                    b64 = base64.b64encode(f.read()).decode("utf-8")
+                return f"data:{mime};base64,{b64}"
+            except Exception:
+                return "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&q=90"
     return "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&q=90"
 
 
 def render_interactive_zoom_viewer(image_path: str, product_name: str, height: int = 560):
-    img_data_uri = get_image_data_uri(image_path)
+    img_data_uri = get_image_data_uri(image_path, max_dim=900, quality=85)
     clean_name = html.escape(product_name or "Produkt")
 
     html_code = f"""
@@ -1489,7 +1473,7 @@ def render_client_app():
         for idx, p in enumerate(products):
             with cols[idx % 3]:
                 with st.container(border=True, height=470, key=f"kpb_card_{p['id']}"):
-                    card_img_uri = get_image_data_uri(p['image_url'])
+                    card_img_uri = get_image_data_uri(p['image_url'], max_dim=360, quality=80)
                     clean_name = html.escape(p['name'])
                     clean_brand = html.escape(p['brand'])
 
