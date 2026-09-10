@@ -129,6 +129,7 @@ The project was executed through nine comprehensive engineering phases:
 - **Touch Gesture Suite for HD Product Inspection**: Added 2-finger pinch-to-zoom calculation, 1-finger drag panning, double-tap zoom triggers, and responsive control bars to the interactive HD zoom viewer.
 - **Mobile-First Layout Reflows**: Transformed desktop grids into clean vertical stacks while maintaining intentional horizontal sub-layouts (side-by-side product card action buttons, cart rows, and 2x2 Admin order action grids).
 - **Mobile Form Ergonomics**: Standardized inputs to 16px to prevent iOS Safari auto-zooming, and expanded mobile touch targets to a minimum of 44px for effortless one-handed smartphone operation.
+- **Zero-Exception Component Script Isolation**: Eliminated `Minified React error #231` by migrating DOM script execution from markdown inline event handlers to isolated `components.html` runtime with safe cross-frame DOM traversal, achieving a 100% clean browser console.
 
 ---
 

@@ -92,167 +92,170 @@ def normalize_albanian_text(s: str) -> str:
     s = "".join(c for c in s if not unicodedata.combining(c))
     return s.replace('ë', 'e').replace('ç', 'c').strip()
 
-@st.cache_data(show_spinner=False)
-def get_live_search_script_tag() -> str:
-    js_code = """
-(function() {
-    function norm(str) {
-        if (!str) return '';
-        return str.toLowerCase()
-                  .normalize('NFD')
-                  .replace(/[\\u0300-\\u036f]/g, '')
-                  .replace(/ë/g, 'e')
-                  .replace(/ç/g, 'c');
-    }
+def inject_live_search_script():
+    components.html("""
+    <script>
+    (function() {
+        const doc = (window.parent && window.parent.document) ? window.parent.document : document;
+        const win = (window.parent && window.parent.window) ? window.parent.window : window;
 
-    function initShopSearch() {
-        const searchInput = (typeof document !== 'undefined') ? (
-            document.querySelector('.st-key-kpb_live_search_input input') 
-            || document.querySelector('input[aria-label*="Kërko me emër"]')
-            || document.querySelector('input[placeholder*="Anua, COSRX, Beauty of Joseon"]')
-        ) : null;
+        function norm(str) {
+            if (!str) return '';
+            return str.toLowerCase()
+                      .normalize('NFD')
+                      .replace(/[\\u0300-\\u036f]/g, '')
+                      .replace(/ë/g, 'e')
+                      .replace(/ç/g, 'c');
+        }
 
-        if (!searchInput) return;
-        if (searchInput.dataset.liveSearchAttached === 'true') return;
-        searchInput.dataset.liveSearchAttached = 'true';
+        function initShopSearch() {
+            const searchInput = doc.querySelector('.st-key-kpb_live_search_input input') 
+                             || doc.querySelector('input[aria-label*="Kërko me emër"]')
+                             || doc.querySelector('input[placeholder*="Anua, COSRX, Beauty of Joseon"]');
 
-        function applyFilter() {
-            const rawVal = (searchInput.value || '').trim();
-            const queryNorm = norm(rawVal);
-            const tokens = queryNorm ? queryNorm.split(/\\s+/).filter(Boolean) : [];
-            const wrappers = document.querySelectorAll('.card-product-wrapper');
-            let visibleCount = 0;
-            const totalCount = wrappers.length;
+            if (!searchInput) return;
+            if (searchInput.dataset.liveSearchAttached === 'true') return;
+            searchInput.dataset.liveSearchAttached = 'true';
 
-            const touchedCols = new Set();
+            function applyFilter() {
+                const rawVal = (searchInput.value || '').trim();
+                const queryNorm = norm(rawVal);
+                const tokens = queryNorm ? queryNorm.split(/\\s+/).filter(Boolean) : [];
+                const wrappers = doc.querySelectorAll('.card-product-wrapper');
+                let visibleCount = 0;
+                const totalCount = wrappers.length;
 
-            wrappers.forEach(function(w) {
-                const searchText = norm(w.getAttribute('data-search') || w.textContent || '');
-                const matches = tokens.length === 0 || tokens.every(function(tk) {
-                    return searchText.includes(tk);
+                const touchedCols = new Set();
+
+                wrappers.forEach(function(w) {
+                    const searchText = norm(w.getAttribute('data-search') || w.textContent || '');
+                    const matches = tokens.length === 0 || tokens.every(function(tk) {
+                        return searchText.includes(tk);
+                    });
+
+                    const card = w.closest('[class*="st-key-kpb_card_"]') 
+                              || w.closest('[data-testid="stVerticalBlockBorderWrapper"]') 
+                              || w.parentElement;
+
+                    if (card) {
+                        const col = card.closest('[data-testid="column"]');
+                        if (col) touchedCols.add(col);
+
+                        if (matches) {
+                            card.style.removeProperty('display');
+                            visibleCount++;
+                        } else {
+                            card.style.setProperty('display', 'none', 'important');
+                        }
+                    }
                 });
 
-                const card = w.closest('[class*="st-key-kpb_card_"]') 
-                          || w.closest('[data-testid="stVerticalBlockBorderWrapper"]') 
-                          || w.parentElement;
+                touchedCols.forEach(function(col) {
+                    const cardsInCol = col.querySelectorAll('[class*="st-key-kpb_card_"]');
+                    let hasVisible = false;
+                    cardsInCol.forEach(function(c) {
+                        if (c.style.display !== 'none') {
+                            hasVisible = true;
+                        }
+                    });
 
-                if (card) {
-                    const col = card.closest('[data-testid="column"]');
-                    if (col) touchedCols.add(col);
-
-                    if (matches) {
-                        card.style.removeProperty('display');
-                        visibleCount++;
+                    if (!hasVisible && tokens.length > 0) {
+                        col.style.setProperty('display', 'none', 'important');
                     } else {
-                        card.style.setProperty('display', 'none', 'important');
-                    }
-                }
-            });
-
-            touchedCols.forEach(function(col) {
-                const cardsInCol = col.querySelectorAll('[class*="st-key-kpb_card_"]');
-                let hasVisible = false;
-                cardsInCol.forEach(function(c) {
-                    if (c.style.display !== 'none') {
-                        hasVisible = true;
+                        col.style.removeProperty('display');
                     }
                 });
 
-                if (!hasVisible && tokens.length > 0) {
-                    col.style.setProperty('display', 'none', 'important');
-                } else {
-                    col.style.removeProperty('display');
-                }
-            });
-
-            const caption = document.getElementById('kpb-product-count');
-            if (caption) {
-                if (tokens.length > 0) {
-                    caption.innerHTML = 'Po shfaqen <strong>' + visibleCount + '</strong> produkte nga ' + totalCount + ' (kërkimi: "' + rawVal + '")';
-                } else {
-                    caption.innerHTML = 'Po shfaqen <strong>' + totalCount + '</strong> produkte';
-                }
-            }
-
-            const noMsg = document.getElementById('no-live-products-msg');
-            const noMsgText = document.getElementById('no-live-products-text');
-            if (noMsg) {
-                if (visibleCount === 0 && totalCount > 0 && tokens.length > 0) {
-                    noMsg.style.display = 'block';
-                    if (noMsgText) {
-                        noMsgText.textContent = 'Nuk u gjet asnjë produkt për "' + rawVal + '".';
+                const caption = doc.getElementById('kpb-product-count');
+                if (caption) {
+                    if (tokens.length > 0) {
+                        caption.innerHTML = 'Po shfaqen <strong>' + visibleCount + '</strong> produkte nga ' + totalCount + ' (kërkimi: "' + rawVal + '")';
+                    } else {
+                        caption.innerHTML = 'Po shfaqen <strong>' + totalCount + '</strong> produkte';
                     }
-                } else {
-                    noMsg.style.display = 'none';
                 }
+
+                const noMsg = doc.getElementById('no-live-products-msg');
+                const noMsgText = doc.getElementById('no-live-products-text');
+                if (noMsg) {
+                    if (visibleCount === 0 && totalCount > 0 && tokens.length > 0) {
+                        noMsg.style.display = 'block';
+                        if (noMsgText) {
+                            noMsgText.textContent = 'Nuk u gjet asnjë produkt për "' + rawVal + '".';
+                        }
+                    } else {
+                        noMsg.style.display = 'none';
+                    }
+                }
+            }
+
+            searchInput.addEventListener('input', applyFilter);
+            searchInput.addEventListener('keyup', applyFilter);
+            searchInput.addEventListener('change', applyFilter);
+            searchInput.addEventListener('paste', function() { setTimeout(applyFilter, 20); });
+            searchInput.addEventListener('search', applyFilter);
+
+            if (searchInput.value) {
+                applyFilter();
             }
         }
 
-        searchInput.addEventListener('input', applyFilter);
-        searchInput.addEventListener('keyup', applyFilter);
-        searchInput.addEventListener('change', applyFilter);
-        searchInput.addEventListener('paste', function() { setTimeout(applyFilter, 20); });
-        searchInput.addEventListener('search', applyFilter);
+        function initInventorySearch() {
+            const invInput = doc.querySelector('.st-key-kpb_inv_live_search_input input');
 
-        if (searchInput.value) {
-            applyFilter();
-        }
-    }
+            if (!invInput) return;
+            if (invInput.dataset.liveSearchAttached === 'true') return;
+            invInput.dataset.liveSearchAttached = 'true';
 
-    function initInventorySearch() {
-        const invInput = (typeof document !== 'undefined') ? (
-            document.querySelector('.st-key-kpb_inv_live_search_input input')
-            || document.querySelector('input[placeholder*="Anua, COSRX"]')
-        ) : null;
+            function applyInvFilter() {
+                const rawVal = (invInput.value || '').trim();
+                const queryNorm = norm(rawVal);
+                const tokens = queryNorm ? queryNorm.split(/\\s+/).filter(Boolean) : [];
+                const expanders = doc.querySelectorAll('[data-testid="stExpander"]');
 
-        if (!invInput) return;
-        if (invInput.dataset.liveSearchAttached === 'true') return;
-        invInput.dataset.liveSearchAttached = 'true';
-
-        function applyInvFilter() {
-            const rawVal = (invInput.value || '').trim();
-            const queryNorm = norm(rawVal);
-            const tokens = queryNorm ? queryNorm.split(/\\s+/).filter(Boolean) : [];
-            const expanders = document.querySelectorAll('[data-testid="stExpander"]');
-
-            expanders.forEach(function(exp) {
-                const expText = norm(exp.textContent || '');
-                const matches = tokens.length === 0 || tokens.every(function(tk) {
-                    return expText.includes(tk);
+                expanders.forEach(function(exp) {
+                    const expText = norm(exp.textContent || '');
+                    const matches = tokens.length === 0 || tokens.every(function(tk) {
+                        return expText.includes(tk);
+                    });
+                    if (matches) {
+                        exp.style.removeProperty('display');
+                    } else {
+                        exp.style.setProperty('display', 'none', 'important');
+                    }
                 });
-                if (matches) {
-                    exp.style.removeProperty('display');
-                } else {
-                    exp.style.setProperty('display', 'none', 'important');
-                }
-            });
+            }
+
+            invInput.addEventListener('input', applyInvFilter);
+            invInput.addEventListener('keyup', applyInvFilter);
+            invInput.addEventListener('change', applyInvFilter);
+            invInput.addEventListener('paste', function() { setTimeout(applyInvFilter, 20); });
+            invInput.addEventListener('search', applyInvFilter);
+
+            if (invInput.value) {
+                applyInvFilter();
+            }
         }
 
-        invInput.addEventListener('input', applyInvFilter);
-        invInput.addEventListener('keyup', applyInvFilter);
-        invInput.addEventListener('change', applyInvFilter);
-        invInput.addEventListener('paste', function() { setTimeout(applyInvFilter, 20); });
-        invInput.addEventListener('search', applyInvFilter);
-
-        if (invInput.value) {
-            applyInvFilter();
+        function runAll() {
+            try {
+                initShopSearch();
+                initInventorySearch();
+            } catch(e) {}
         }
-    }
 
-    function runAll() {
-        initShopSearch();
-        initInventorySearch();
-    }
+        runAll();
 
-    runAll();
+        if (!win._kpbLiveSearchInterval) {
+            win._kpbLiveSearchInterval = setInterval(runAll, 250);
+        }
+    })();
+    </script>
+    """, height=0, width=0)
 
-    if (!window._kpbLiveSearchInterval) {
-        window._kpbLiveSearchInterval = setInterval(runAll, 250);
-    }
-})();
-"""
-    b64 = base64.b64encode(js_code.encode("utf-8")).decode("ascii")
-    return f'<img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" style="display:none;" onload="try{{eval(atob(\'{b64}\'))}}catch(e){{console.error(e);}}">'
+def get_live_search_script_tag() -> str:
+    # Deprecated fallback - returns empty string to prevent React error #231
+    return ""
 
 
 ADMIN_NOTIFICATION_EMAIL = "leart.demaku2006@gmail.com"
@@ -1983,7 +1986,7 @@ def render_main_app():
             products = [p for p in products if p.get('category') == cat_filter]
 
         # Injektimi i motorit të kërkimit në kohë reale (0ms vonesë pa reload)
-        st.markdown(get_live_search_script_tag(), unsafe_allow_html=True)
+        inject_live_search_script()
 
         st.markdown(
             f'<div id="kpb-product-count" class="kpb-product-count-caption" style="color: light-dark(#64748b, #8892b0); font-size: 0.88rem; font-weight: 600; margin-bottom: 12px;">'
@@ -2417,7 +2420,7 @@ def render_main_app():
             key="kpb_inv_live_search_input",
             placeholder="Shkruaj p.sh. Anua, COSRX, Toner..."
         )
-        st.markdown(get_live_search_script_tag(), unsafe_allow_html=True)
+        inject_live_search_script()
 
         filtered_products = products
         if inv_search and inv_search.strip():
