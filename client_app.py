@@ -12,6 +12,7 @@ import html
 import database
 import auth
 import email_service
+import urllib.parse
 
 # 1. Konfigurimi Kryesor
 from PIL import Image
@@ -1565,7 +1566,30 @@ def render_client_app():
     elif current_page == "cart":
         st.markdown("<h1 style='color: #ff758c;'>🛒 Shporta e Blerjeve</h1>", unsafe_allow_html=True)
 
-        if not st.session_state.cart:
+        if st.session_state.get("last_order"):
+            lo = st.session_state["last_order"]
+            st.balloons()
+            st.markdown(f"""
+            <div style="background: linear-gradient(135deg, #fff0f3 0%, #ffffff 100%); border: 2px solid #ff758c; border-radius: 20px; padding: 28px; margin-bottom: 22px; text-align: center; box-shadow: 0 10px 30px rgba(255, 117, 140, 0.15);">
+                <div style="font-size: 3.2rem; margin-bottom: 6px;">🎉</div>
+                <h2 style="color: #ff758c; margin-bottom: 6px;">Faleminderit, {lo['name']}!</h2>
+                <div style="font-size: 1.15rem; font-weight: 700; color: #1e293b; margin-bottom: 12px;">Porosia juaj <span style="background: #ff758c; color: white; padding: 3px 12px; border-radius: 8px;">#{lo['id']}</span> prej <span style="color: #ff758c;">€{lo['total']:.2f}</span> u regjistrua me sukses!</div>
+                <p style="font-size: 0.95rem; color: #475569; margin-bottom: 18px;">✅ Njoftimi i plotë iu dërgua menjëherë stafit tonë në <strong>{ADMIN_NOTIFICATION_EMAIL}</strong>.<br>Ekipi ynë do t'ju kontaktojë së shpejti në <strong>{lo['phone']}</strong> për konfirmimin e dërgesës.</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            c_btn1, c_btn2 = st.columns(2)
+            with c_btn1:
+                wa_msg = f"Përshëndetje! Jam {lo['name']}, sapo kreva porosinë #{lo['id']} me vlerë €{lo['total']:.2f} te Korea Pure Beauty."
+                wa_link = f"https://wa.me/38345319619?text={urllib.parse.quote(wa_msg)}"
+                st.link_button("💬 Shkruaj në WhatsApp me Dyqanin", wa_link, use_container_width=True)
+            with c_btn2:
+                if st.button("🛍️ Vazhdo Blerjet në Dyqan", type="primary", use_container_width=True):
+                    st.session_state.last_order = None
+                    st.session_state.current_page = "shop"
+                    st.rerun()
+
+        elif not st.session_state.cart:
             st.info("Shporta juaj është bosh. Zgjidhni produkte nga Dyqani!")
             if st.button("🛍️ Kthehu te Dyqani", type="primary"):
                 st.session_state.current_page = "shop"
@@ -1636,9 +1660,29 @@ def render_client_app():
                                 items=cart_items_list,
                                 total_price=final
                             )
-                            st.balloons()
-                            st.success(f"🎉 Faleminderit {b_name}! Porosia juaj #{order_id} prej €{final:.2f} u regjistrua me sukses!")
+                            # Dërgimi i email-it tek administratori
+                            try:
+                                email_service.send_order_notification_email(
+                                    order_id=order_id,
+                                    buyer_name=b_name.strip(),
+                                    phone=b_phone.strip(),
+                                    city=b_city.strip(),
+                                    address=b_addr.strip(),
+                                    items=cart_items_list,
+                                    total_price=final,
+                                    to_admin_email=ADMIN_NOTIFICATION_EMAIL
+                                )
+                            except Exception:
+                                pass
+
                             st.session_state.cart = {}
+                            st.session_state.last_order = {
+                                "id": order_id,
+                                "name": b_name.strip(),
+                                "phone": b_phone.strip(),
+                                "total": final
+                            }
+                            st.rerun()
 
     # ----------------------------------------------------
     # 3. SHTIMI I PRODUKTIT (VETËM ADMIN)

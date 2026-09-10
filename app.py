@@ -13,6 +13,7 @@ import pandas as pd
 import database
 import auth
 import email_service
+import urllib.parse
 
 # 1. Konfigurimi Kryesor
 from PIL import Image
@@ -1615,8 +1616,23 @@ def render_main_app():
                                 items=cart_items_list,
                                 total_price=final
                             )
+                            # Dërgojmë njoftimin në Email
+                            try:
+                                email_service.send_order_notification_email(
+                                    order_id=order_id,
+                                    buyer_name=b_name.strip(),
+                                    phone=b_phone.strip(),
+                                    city=b_city.strip(),
+                                    address=b_addr.strip(),
+                                    items=cart_items_list,
+                                    total_price=final,
+                                    to_admin_email=ADMIN_NOTIFICATION_EMAIL
+                                )
+                            except Exception:
+                                pass
+
                             st.balloons()
-                            st.success(f"🎉 Faleminderit {b_name}! Porosia juaj #{order_id} prej €{final:.2f} u regjistrua me sukses dhe u dërgua te administratori në `{ADMIN_NOTIFICATION_EMAIL}`!")
+                            st.success(f"🎉 Faleminderit {b_name}! Porosia juaj #{order_id} prej €{final:.2f} u regjistrua me sukses dhe njoftimi u dërgua te administratori në `{ADMIN_NOTIFICATION_EMAIL}`!")
                             st.session_state.cart = {}
 
     # ----------------------------------------------------
