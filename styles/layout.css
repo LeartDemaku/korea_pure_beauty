@@ -100,3 +100,21 @@
     .kpb-footer__grid { grid-template-columns: 1fr; gap: var(--kpb-space-3); }
     .kpb-announce { border-radius: var(--kpb-radius-sm); letter-spacing: 0.12em; }
 }
+
+/* --- Celulari: menyja mbetet në rresht (jo 5 butona njëri mbi tjetrin) --- */
+@media (max-width: 640px) {
+    .st-key-kpb-nav [data-testid="stHorizontalBlock"] {
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 0.25rem !important;
+    }
+    .st-key-kpb-nav [data-testid="stColumn"],
+    .st-key-kpb-nav [data-testid="column"] {
+        flex: 1 1 30% !important;
+        min-width: 30% !important;
+        width: auto !important;
+    }
+    .stApp .st-key-kpb-nav button p { font-size: 0.68rem !important; letter-spacing: 0.12em; }
+    .kpb-nav-logo { height: 44px; margin: 0 auto; }
+    .stApp [class*="st-key-kpb-pcard-"]:hover { transform: none; }   /* pa "kërcim" në prekje */
+}
