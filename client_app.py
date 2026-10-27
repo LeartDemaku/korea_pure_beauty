@@ -14,7 +14,7 @@ import auth
 import email_service
 import theme
 import cart
-from views import home_view
+from views import home_view, shop_view, ritual_view, contact_view, privacy_view, cart_view
 import urllib.parse
 import unicodedata
 
@@ -135,12 +135,13 @@ def inject_live_search_script():
                         return searchText.includes(tk);
                     });
 
-                    const card = w.closest('[class*="st-key-kpb_card_"]') 
+                    const card = w.closest('[class*="st-key-kpb-pcard-"]')
+                              || w.closest('[class*="st-key-kpb_card_"]') 
                               || w.closest('[data-testid="stVerticalBlockBorderWrapper"]') 
                               || w.parentElement;
 
                     if (card) {
-                        const col = card.closest('[data-testid="column"]');
+                        const col = card.closest('[data-testid="stColumn"], [data-testid="column"]');
                         if (col) touchedCols.add(col);
 
                         if (matches) {
@@ -153,7 +154,7 @@ def inject_live_search_script():
                 });
 
                 touchedCols.forEach(function(col) {
-                    const cardsInCol = col.querySelectorAll('[class*="st-key-kpb_card_"]');
+                    const cardsInCol = col.querySelectorAll('[class*="st-key-kpb-pcard-"], [class*="st-key-kpb_card_"]');
                     let hasVisible = false;
                     cardsInCol.forEach(function(c) {
                         if (c.style.display !== 'none') {
@@ -1653,6 +1654,8 @@ def render_client_app():
             nav_buttons = [
                 ("home", "🏠 Ballina"),
                 ("shop", "🛍️ Dyqani / Katalogu"),
+                ("ritual", "✨ Rituali"),
+                ("contact", "💬 Kontakt"),
                 ("cart", f"🛒 Shporta{cart_badge}"),
                 ("add", "➕ Shto Produkt (Drag & Drop)"),
                 ("orders", "📦 Porositë e Ardhura"),
@@ -1663,6 +1666,8 @@ def render_client_app():
             nav_buttons = [
                 ("home", "🏠 Ballina"),
                 ("shop", "🛍️ Dyqani / Katalogu"),
+                ("ritual", "✨ Rituali"),
+                ("contact", "💬 Kontakt"),
                 ("cart", f"🛒 Shporta{cart_badge}")
             ]
 
@@ -1709,7 +1714,7 @@ def render_client_app():
         st.markdown(f'<div class="kpb-announce">{html.escape(announcement)}</div>', unsafe_allow_html=True)
 
     with st.container(key="kpb-navbar"):
-        top_col_brand, top_col_nav, top_col_auth = st.columns([1.1, 2.1, 1.5], vertical_alignment="center")
+        top_col_brand, top_col_nav, top_col_auth = st.columns([1, 3, 1.4], vertical_alignment="center")
         with top_col_brand:
             logo_uri = theme.asset_data_uri("logo.png")
             if logo_uri:
@@ -1718,7 +1723,8 @@ def render_client_app():
                 st.markdown('<span class="kpb-footer__wordmark">Korea Pure Beauty</span>', unsafe_allow_html=True)
         with top_col_nav:
             with st.container(key="kpb-nav"):
-                navbar_items = [("home", "Ballina"), ("shop", "Dyqani"), ("cart", f"Shporta ({total_cart_items})")]
+                navbar_items = [("home", "Ballina"), ("shop", "Dyqani"), ("ritual", "Rituali"),
+                                ("contact", "Kontakt"), ("cart", f"Shporta ({total_cart_items})")]
                 for nav_column, (page_key, page_label) in zip(st.columns(len(navbar_items)), navbar_items):
                     with nav_column:
                         is_current = st.session_state.current_page == page_key
@@ -1924,6 +1930,15 @@ def render_client_app():
     if current_page == "home":
         home_view.render_home(get_image_data_uri)
         return
+    if current_page == "ritual":
+        ritual_view.render_ritual(get_image_data_uri)
+        return
+    if current_page == "contact":
+        contact_view.render_contact()
+        return
+    if current_page == "privacy":
+        privacy_view.render_privacy()
+        return
 
     # Nëse po shikon detajet e produktit
     if current_page == "shop" and st.session_state.selected_product_id is not None:
@@ -1935,240 +1950,13 @@ def render_client_app():
     # 1. DYQANI & KATALOGU
     # ----------------------------------------------------
     if current_page == "shop":
-        banner_uri = get_banner_data_uri()
-        if banner_uri:
-            st.markdown(
-                f'<div class="kpb-hero-banner">'
-                f'<img src="{banner_uri}" alt="Korea Pure Beauty" />'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-        elif os.path.exists(BANNER_PATH):
-            st.image(BANNER_PATH, use_container_width=True)
-
-        all_p = database.get_all_products()
-        if not all_p:
-            st.info("💡 Dyqani po përgatitet me produkte të reja. Ju lutem rikthehuni së shpejti!")
-            st.stop()
-
-        # Filtrat
-        c_search, c_skin, c_cat = st.columns([2, 1, 1])
-        with c_search:
-            search_query = st.text_input(
-                "🔍 Kërko me emër ose markë...",
-                key="kpb_live_search_input",
-                placeholder="Shkruaj p.sh. Anua, COSRX, Beauty of Joseon, Toner..."
-            )
-        with c_skin:
-            skin_filter = st.selectbox(
-                "Lloji i Lëkurës",
-                ["Të gjitha", "Të gjitha tipet", "E Thata", "E Yndyrshme", "Mikse (Kombinuar)", "Sensitive", "Me Akne / Poret"],
-                key="kpb_skin_select"
-            )
-        with c_cat:
-            cat_filter = st.selectbox(
-                "Kategoria",
-                ["Të gjitha", "Cleanser (Pastrues)", "Toner", "Serum / Essence", "Moisturizer (Krem)", "Sunscreen (SPF)", "Maskë", "Eye Cream"],
-                key="kpb_cat_select"
-            )
-
-        products = all_p
-        if skin_filter not in ["Të gjitha", "Të gjitha tipet"]:
-            products = [p for p in products if p.get('skin_type') == skin_filter]
-
-        if cat_filter != "Të gjitha":
-            products = [p for p in products if p.get('category') == cat_filter]
-
-        # Injektimi i motorit të kërkimit në kohë reale (0ms vonesë pa reload)
-        inject_live_search_script()
-
-        st.markdown(
-            f'<div id="kpb-product-count" class="kpb-product-count-caption" style="color: light-dark(#64748b, #8892b0); font-size: 0.88rem; font-weight: 600; margin-bottom: 12px;">'
-            f'Po shfaqen <strong>{len(products)}</strong> produkte'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-
-        st.markdown("""
-        <div id="no-live-products-msg" style="display: none; text-align: center; padding: 40px 20px; background: rgba(255, 117, 140, 0.05); border: 2px dashed rgba(255, 117, 140, 0.35); border-radius: 20px; margin: 25px 0;">
-            <div style="font-size: 42px; margin-bottom: 8px;">🔍</div>
-            <div style="font-size: 1.15rem; font-weight: 800; color: #ff758c; margin-bottom: 6px;" id="no-live-products-text">Nuk u gjet asnjë produkt për këtë kërkim.</div>
-            <div style="font-size: 0.9rem; opacity: 0.75;">Provoni të shkruani një emër ose markë tjetër, ose pastroni kërkimin për të parë të gjitha produktet.</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        cols = st.columns(3)
-        for idx, p in enumerate(products):
-            with cols[idx % 3]:
-                with st.container(border=True, height=470, key=f"kpb_card_{p['id']}"):
-                    card_img_uri = get_image_data_uri(p['image_url'], max_dim=360, quality=80)
-                    clean_name = html.escape(p['name'])
-                    clean_brand = html.escape(p['brand'])
-
-                    badge_str = ""
-                    if p['is_original']:
-                        badge_str += "<span class='badge-tag badge-kr'>🇰🇷 100% Origjinal</span>"
-                    if p['eu_certified']:
-                        badge_str += "<span class='badge-tag badge-eu'>🇪🇺 BE Standard</span>"
-                    badge_str += f"<span class='badge-tag badge-skin'>🧴 {p['skin_type']}</span>"
-
-                    desc_text = p['description'] if p['description'] else "Produkt origjinal i testuar me cilësi të lartë për kujdesin ndaj lëkurës."
-                    card_desc = html.escape(" ".join(desc_text.split()))
-
-                    searchable_text = f"{p['name']} {p['brand']} {p['category']} {p['skin_type']} {desc_text}"
-                    searchable_clean = html.escape(" ".join(searchable_text.split()))
-
-                    card_info_html = f"""
-                    <div class='card-product-wrapper'
-                         data-card-id='{p['id']}'
-                         data-brand='{html.escape(p['brand'])}'
-                         data-name='{html.escape(p['name'])}'
-                         data-search='{searchable_clean}'>
-                        <div class='card-img-wrap'>
-                            <img src='{card_img_uri}' alt='{clean_name}' class='card-img-tag' />
-                        </div>
-                        <div class='brand-box'>{clean_brand}</div>
-                        <div class='title-container'><div class='title-box'>{clean_name}</div></div>
-                        <div class='desc-container'><div class='desc-box'>{card_desc}</div></div>
-                        <div class='badges-box'>{badge_str}</div>
-                        <div class='price-box'>€{p['price']:.2f}</div>
-                    </div>
-                    """
-                    st.markdown(card_info_html, unsafe_allow_html=True)
-
-                    col_b1, col_b2 = st.columns(2)
-                    with col_b1:
-                        if st.button("👁️ Shiko", key=f"view_{p['id']}", use_container_width=True):
-                            st.session_state.selected_product_id = p['id']
-                            st.rerun()
-                    with col_b2:
-                        if st.button("🛒 Shto", key=f"btn_cart_{p['id']}", use_container_width=True, type="primary"):
-                            cart.add_to_cart(p)
-                            st.rerun()
+        shop_view.render_shop(get_image_data_uri, inject_live_search_script)
 
     # ----------------------------------------------------
     # 2. SHPORTA DHE CHECKOUT
     # ----------------------------------------------------
     elif current_page == "cart":
-        st.markdown("<h1 style='color: #ff758c;'>🛒 Shporta e Blerjeve</h1>", unsafe_allow_html=True)
-
-        if st.session_state.get("last_order"):
-            lo = st.session_state["last_order"]
-            st.balloons()
-            st.markdown(f"""
-            <div style="background: linear-gradient(135deg, #fff0f3 0%, #ffffff 100%); border: 2px solid #ff758c; border-radius: 20px; padding: 28px; margin-bottom: 22px; text-align: center; box-shadow: 0 10px 30px rgba(255, 117, 140, 0.15);">
-                <div style="font-size: 3.2rem; margin-bottom: 6px;">🎉</div>
-                <h2 style="color: #ff758c; margin-bottom: 6px;">Faleminderit, {lo['name']}!</h2>
-                <div style="font-size: 1.15rem; font-weight: 700; color: #1e293b; margin-bottom: 12px;">Porosia juaj <span style="background: #ff758c; color: white; padding: 3px 12px; border-radius: 8px;">#{lo['id']}</span> prej <span style="color: #ff758c;">€{lo['total']:.2f}</span> u regjistrua me sukses!</div>
-                <p style="font-size: 0.95rem; color: #475569; margin-bottom: 18px;">✅ Njoftimi i plotë iu dërgua menjëherë stafit tonë në <strong>{ADMIN_NOTIFICATION_EMAIL}</strong>.<br>Ekipi ynë do t'ju kontaktojë së shpejti në <strong>{lo['phone']}</strong> për konfirmimin e dërgesës.</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-            c_btn1, c_btn2 = st.columns(2)
-            with c_btn1:
-                wa_msg = f"Përshëndetje! Jam {lo['name']}, sapo kreva porosinë #{lo['id']} me vlerë €{lo['total']:.2f} te Korea Pure Beauty."
-                wa_link = f"https://wa.me/38345319619?text={urllib.parse.quote(wa_msg)}"
-                st.link_button("💬 Shkruaj në WhatsApp me Dyqanin", wa_link, use_container_width=True)
-            with c_btn2:
-                if st.button("🛍️ Vazhdo Blerjet në Dyqan", type="primary", use_container_width=True):
-                    st.session_state.last_order = None
-                    st.session_state.current_page = "shop"
-                    st.rerun()
-
-        elif not st.session_state.cart:
-            st.info("Shporta juaj është bosh. Zgjidhni produkte nga Dyqani!")
-            if st.button("🛍️ Kthehu te Dyqani", type="primary"):
-                st.session_state.current_page = "shop"
-                st.rerun()
-        else:
-            c_left, c_right = st.columns([1.7, 1.3])
-
-            with c_left:
-                st.subheader("Artikujt e zgjedhur")
-                tot = 0.0
-                cart_items_list = []
-
-                for pid, item in list(st.session_state.cart.items()):
-                    cart_items_list.append(item)
-                    with st.container(border=True):
-                        col_img, col_txt, col_act = st.columns([1, 3, 1])
-                        with col_img:
-                            if item['image'] and os.path.exists(item['image']):
-                                st.image(item['image'], width=75)
-                            elif item['image'] and item['image'].startswith("http"):
-                                st.image(item['image'], width=75)
-                            else:
-                                st.image("https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500&q=80", width=75)
-                        with col_txt:
-                            st.write(f"**{item['name']}**")
-                            st.caption(f"{item['brand']} • €{item['price']:.2f}")
-                            st.write(f"Sasia: **{item['qty']}** copë")
-                        with col_act:
-                            sub = item['price'] * item['qty']
-                            tot += sub
-                            st.write(f"**€{sub:.2f}**")
-                            if st.button("Fshij 🗑️", key=f"del_cart_{pid}"):
-                                del st.session_state.cart[pid]
-                                st.rerun()
-
-            with c_right:
-                with st.container(border=True):
-                    st.subheader("Përmbledhja e Porosisë")
-                    st.write(f"Nëntotali: **€{tot:.2f}**")
-                    shipping = 0.0 if tot >= 40 else 2.50
-                    st.write(f"Transporti: **{'Falas (Mbi €40)' if shipping == 0 else '€2.50'}**")
-
-                    coupon = st.text_input("Kupon Zbritjeje (KOREA10)")
-                    discount = 0.0
-                    if coupon.strip().upper() == "KOREA10":
-                        discount = tot * 0.10
-                        st.success("🎉 Zbritja 10% u llogarit!")
-
-                    final = tot + shipping - discount
-                    st.markdown(f"## Totali: <span style='color: #ff758c;'>€{final:.2f}</span>", unsafe_allow_html=True)
-                    st.divider()
-
-                    st.write("#### 🚚 Të dhënat e Dërgesës")
-                    b_name = st.text_input("Emri dhe Mbiemri *", placeholder="p.sh. Blerta Krasniqi")
-                    b_phone = st.text_input("Numri i Telefonit *", placeholder="p.sh. +383 44 123 456")
-                    b_city = st.text_input("Qyteti *", placeholder="Shkruani qytetin tuaj (p.sh. Prishtinë, Tiranë, Ferizaj, etj.)")
-                    b_addr = st.text_area("Adresa e plotë e dërgesës *", placeholder="Rruga, Numri i banesës/shtëpisë...")
-
-                    if st.button("🚀 Përfundo Porosinë Tani", type="primary", use_container_width=True):
-                        if not b_name.strip() or not b_phone.strip() or not b_city.strip() or not b_addr.strip():
-                            st.error("Plotësoni të gjitha fushat e dërgesës (përfshirë qytetin).")
-                        else:
-                            order_id = database.create_order(
-                                buyer_name=b_name.strip(),
-                                phone=b_phone.strip(),
-                                city=b_city.strip(),
-                                address=b_addr.strip(),
-                                items=cart_items_list,
-                                total_price=final
-                            )
-                            # Dërgimi i email-it tek administratori
-                            try:
-                                email_service.send_order_notification_email(
-                                    order_id=order_id,
-                                    buyer_name=b_name.strip(),
-                                    phone=b_phone.strip(),
-                                    city=b_city.strip(),
-                                    address=b_addr.strip(),
-                                    items=cart_items_list,
-                                    total_price=final,
-                                    to_admin_email=ADMIN_NOTIFICATION_EMAIL
-                                )
-                            except Exception:
-                                pass
-
-                            st.session_state.cart = {}
-                            st.session_state.last_order = {
-                                "id": order_id,
-                                "name": b_name.strip(),
-                                "phone": b_phone.strip(),
-                                "total": final
-                            }
-                            st.rerun()
+        cart_view.render_cart(get_image_data_uri)
 
     # ----------------------------------------------------
     # 3. SHTIMI I PRODUKTIT (VETËM ADMIN)

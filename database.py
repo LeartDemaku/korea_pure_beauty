@@ -32,9 +32,13 @@ LOW_STOCK_THRESHOLD = 3
 # Futen vetëm nëse çelësi nuk ekziston, kështu që ndryshimet e adminit nuk humbin.
 DEFAULT_SETTINGS = {
     'announcement_text': 'Transport falas në Kosovë për porosi mbi 30€',
-    'whatsapp_number': '',
+    'whatsapp_number': '38345319619',  # numri i dyqanit (ishte i shkruar në kod)
     'shipping_fee': '2.00',
     'free_shipping_threshold': '30.00',
+    'business_hours': '',
+    'contact_email': '',
+    # '1' = mos lejo blerje mbi stokun. Ndize te Admin pasi të futësh stokun e vërtetë.
+    'enforce_stock': '0',
 }
 
 # Kolonat e reja që shtohen në tabelat ekzistuese pa humbur të dhëna.
@@ -178,6 +182,11 @@ def init_database():
     cursor.executemany(
         'INSERT OR IGNORE INTO store_settings (key, value) VALUES (?, ?)',
         list(DEFAULT_SETTINGS.items())
+    )
+    # Bazat e krijuara në Fazën 1 e kishin numrin bosh: e plotësojmë një herë
+    cursor.execute(
+        "UPDATE store_settings SET value = ? WHERE key = 'whatsapp_number' AND value = ''",
+        (DEFAULT_SETTINGS['whatsapp_number'],)
     )
 
     # Tabela e re: vlerësimet e klientëve (vetëm vlerësime të vërteta, të shtuara nga admini)
@@ -488,15 +497,18 @@ def delete_product(product_id: int) -> bool:
         conn.close()
 
 # ===== ORDERS =====
-def create_order(buyer_name: str, phone: str, city: str, address: str, items: list, total_price: float) -> int:
+def create_order(buyer_name: str, phone: str, city: str, address: str, items: list, total_price: float,
+                 customer_notes: str = '', buyer_email: str = '', payment_method: str = 'Para në dorë') -> int:
     conn = get_connection()
     cursor = conn.cursor()
     try:
-        items_str = json.dumps(items)
+        items_str = json.dumps(items, ensure_ascii=False)
         cursor.execute('''
-            INSERT INTO orders (buyer_name, phone, city, address, items_json, total_price)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (buyer_name, phone, city, address, items_str, total_price))
+            INSERT INTO orders (buyer_name, phone, city, address, items_json, total_price,
+                                customer_notes, buyer_email, payment_method)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (buyer_name, phone, city, address, items_str, total_price,
+              customer_notes.strip(), buyer_email.strip().lower(), payment_method))
         conn.commit()
         return cursor.lastrowid
     finally:
@@ -572,6 +584,15 @@ def decrement_stock(product_id: int, quantity: int) -> bool:
             (quantity, product_id, quantity)
         )
         return cur.rowcount > 0
+
+
+def reduce_stock_after_order(product_id: int, quantity: int) -> None:
+    """Ul stokun pas porosisë; nuk zbret nën zero (stoku mund të mos jetë futur ende)."""
+    with _db() as conn:
+        conn.execute(
+            "UPDATE products SET stock_qty = MAX(stock_qty - ?, 0) WHERE id = ?",
+            (max(0, int(quantity)), product_id)
+        )
 
 
 def get_bestsellers(limit: int = 8) -> List[Dict]:

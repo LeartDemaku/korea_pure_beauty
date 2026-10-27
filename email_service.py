@@ -529,3 +529,65 @@ Hapni Panelin e Administratorit për të parë detajet ose për të kontaktuar k
         return False, f"Dështoi dërgimi i email-it: {str(e)}"
 
 
+
+
+def _send_message(msg: EmailMessage) -> tuple[bool, str]:
+    """Dërgon një email me konfigurimin SMTP. Nuk e rrëzon kurrë aplikacionin."""
+    if not is_smtp_configured():
+        return False, "Kredencialet e email-it nuk janë konfiguruar ende."
+    config = get_smtp_config()
+    try:
+        if config["port"] == 465:
+            with smtplib.SMTP_SSL(config["server"], config["port"], timeout=12) as server:
+                server.login(config["user"], config["password"])
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(config["server"], config["port"], timeout=12) as server:
+                server.starttls()
+                server.login(config["user"], config["password"])
+                server.send_message(msg)
+        return True, "Email-i u dërgua."
+    except (smtplib.SMTPException, OSError) as error:
+        return False, f"Email-i nuk u dërgua: {error}"
+
+
+def admin_email() -> str:
+    """Adresa ku vijnë njoftimet e dyqanit: ADMIN_NOTIFICATION_EMAIL ose vetë llogaria SMTP."""
+    return _get_secret("ADMIN_NOTIFICATION_EMAIL") or _get_secret("SMTP_USER")
+
+
+def send_contact_notification_email(name: str, email: str, phone: str, message: str) -> tuple[bool, str]:
+    """Njofton administratorin për një mesazh të ri nga faqja e Kontaktit."""
+    to_address = admin_email()
+    if not to_address:
+        return False, "Nuk ka adresë për njoftimet e adminit."
+    config = get_smtp_config()
+    msg = EmailMessage()
+    msg["Subject"] = f"Mesazh i ri nga {name.strip()} — Korea Pure Beauty"
+    msg["From"] = f'{config["from_name"]} <{config["user"]}>'
+    msg["To"] = to_address
+    if email.strip():
+        msg["Reply-To"] = email.strip()
+    msg.set_content(
+        f"Emri: {name.strip()}\nEmail: {email.strip() or '-'}\nTelefoni: {phone.strip() or '-'}\n\n{message.strip()}"
+    )
+    return _send_message(msg)
+
+
+def send_order_confirmation_to_customer(to_email: str, order_id: int, buyer_name: str,
+                                        items: list, total_price: float) -> tuple[bool, str]:
+    """Konfirmimi i porosisë për blerësin (kur ka dhënë email)."""
+    if not to_email.strip():
+        return False, "Blerësi nuk ka dhënë email."
+    config = get_smtp_config()
+    lines = "\n".join(f"- {item['name']} × {item['qty']} = {item['price'] * item['qty']:.2f} €" for item in items)
+    msg = EmailMessage()
+    msg["Subject"] = f"Porosia #{order_id} u pranua — Korea Pure Beauty"
+    msg["From"] = f'{config["from_name"]} <{config["user"]}>'
+    msg["To"] = to_email.strip()
+    msg.set_content(
+        f"Përshëndetje {buyer_name},\n\nFaleminderit për porosinë! Numri i referencës: #{order_id}.\n\n"
+        f"{lines}\n\nTotali: {total_price:.2f} € (pagesë me para në dorë).\n\n"
+        "Do t'ju kontaktojmë në telefon para dërgesës.\n\nKorea Pure Beauty"
+    )
+    return _send_message(msg)

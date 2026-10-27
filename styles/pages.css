@@ -1,0 +1,120 @@
+/* pages.css — Dyqani (filtrat), Quick-View, Rituali, Kontakti, Privatësia, Shporta */
+
+/* --- Fushat e formularëve --- */
+.stApp [data-baseweb="input"], .stApp [data-baseweb="select"] > div, .stApp [data-baseweb="textarea"] {
+    background: var(--kpb-white) !important;
+    border-color: var(--kpb-sand) !important;
+    border-radius: 12px !important;
+}
+.stApp [data-baseweb="input"]:focus-within, .stApp [data-baseweb="textarea"]:focus-within {
+    border-color: var(--kpb-terracotta) !important;
+}
+.st-key-kpb-shop-filters { margin-bottom: var(--kpb-space-2); }
+
+/* --- Gjendja bosh --- */
+.kpb-empty {
+    text-align: center;
+    padding: var(--kpb-space-4) var(--kpb-space-2);
+    border: 1px dashed var(--kpb-gold);
+    border-radius: var(--kpb-radius-md);
+    background: rgba(255, 255, 255, 0.6);
+    margin: var(--kpb-space-2) 0;
+}
+.kpb-empty p { font-family: var(--kpb-font-display); font-size: 1.4rem; margin: 0 0 0.3rem; }
+.kpb-empty span { color: var(--kpb-text-muted); font-size: 0.9rem; }
+.kpb-empty--small { padding: var(--kpb-space-3) var(--kpb-space-2); }
+
+/* --- Quick-View --- */
+.kpb-qv__media { aspect-ratio: 1 / 1; border-radius: var(--kpb-radius-md); background: #F6F0EA; overflow: hidden; }
+.kpb-qv__media img { width: 100%; height: 100%; object-fit: contain; padding: 6%; mix-blend-mode: multiply; }
+.stApp .kpb-qv__name { font-family: var(--kpb-font-display) !important; font-size: 1.9rem !important; font-weight: 500; margin: 0.3rem 0 0.6rem; padding: 0; }
+.kpb-qv__price .kpb-price { font-size: 1.6rem; }
+.kpb-qv__meta { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0.9rem 0; }
+.kpb-qv__desc { color: var(--kpb-text-muted); line-height: 1.7; }
+
+/* --- Kuisi i Ritualit --- */
+.st-key-kpb-quiz {
+    background: var(--kpb-white);
+    border: 1px solid var(--kpb-sand);
+    border-radius: var(--kpb-radius-md);
+    padding: var(--kpb-space-3);
+    gap: var(--kpb-space-3);
+}
+.st-key-kpb-quiz label p { font-family: var(--kpb-font-display); font-size: 1.25rem !important; }
+.kpb-ritual-total { text-align: center; font-size: 1.05rem; margin: var(--kpb-space-3) 0 var(--kpb-space-1); }
+
+/* --- Kontakti --- */
+.kpb-info-card {
+    background: var(--kpb-espresso);
+    color: var(--kpb-text-on-dark);
+    border-radius: var(--kpb-radius-md);
+    padding: var(--kpb-space-3);
+}
+.kpb-info-card h4 {
+    font-family: var(--kpb-font-body) !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--kpb-gold) !important;
+    margin: var(--kpb-space-3) 0 0.3rem;
+    padding: 0;
+}
+.kpb-info-card p { color: rgba(243, 235, 228, 0.78); margin: 0; line-height: 1.7; }
+.kpb-info-card a:not(.kpb-btn) { color: var(--kpb-text-on-dark) !important; }
+.kpb-btn--block { width: 100%; }
+.st-key-kpb-faq [data-testid="stExpander"] details {
+    background: var(--kpb-white);
+    border: 1px solid var(--kpb-sand) !important;
+    border-radius: 12px !important;
+}
+.st-key-kpb-faq summary p { font-family: var(--kpb-font-display); font-size: 1.2rem !important; }
+
+/* --- Privatësia --- */
+.kpb-legal { max-width: 46rem; }
+.stApp .kpb-legal h3 { font-size: 1.5rem !important; margin: var(--kpb-space-3) 0 0.4rem; padding: 0; }
+.kpb-legal p { line-height: 1.8; color: var(--kpb-text); }
+
+/* --- Lidhjet poshtë footer-it --- */
+.st-key-kpb-footer-links { margin-top: var(--kpb-space-1); }
+.stApp .st-key-kpb-footer-links button {
+    background: transparent !important;
+    border: 0 !important;
+    color: var(--kpb-text-muted) !important;
+    font-size: 0.8rem !important;
+}
+.stApp .st-key-kpb-footer-links button:hover { color: var(--kpb-terracotta) !important; }
+
+/* --- Shporta & arka --- */
+.stApp [class*="st-key-kpb-cart-row-"] {
+    background: var(--kpb-white);
+    border: 1px solid var(--kpb-sand);
+    border-radius: var(--kpb-radius-md);
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.25rem;
+}
+.kpb-cart__img { width: 100%; max-width: 88px; aspect-ratio: 1; object-fit: contain; border-radius: 10px; background: #F6F0EA; mix-blend-mode: multiply; }
+.kpb-cart__name { font-family: var(--kpb-font-display); font-size: 1.15rem; margin: 0.2rem 0 0.3rem; line-height: 1.3; }
+.kpb-summary {
+    background: var(--kpb-white);
+    border: 1px solid var(--kpb-sand);
+    border-radius: var(--kpb-radius-md);
+    padding: var(--kpb-space-3);
+    margin-bottom: var(--kpb-space-2);
+}
+.kpb-sum__free { margin: 0 0 0.5rem; font-size: 0.9rem; }
+.kpb-sum__bar { height: 4px; border-radius: 4px; background: var(--kpb-sand); overflow: hidden; margin-bottom: var(--kpb-space-2); }
+.kpb-sum__bar span { display: block; height: 100%; background: var(--kpb-terracotta); transition: width 0.6s var(--kpb-ease); }
+.kpb-sum__row { display: flex; justify-content: space-between; padding: 0.45rem 0; border-bottom: 1px solid var(--kpb-sand); }
+.kpb-sum__total { border-bottom: 0; font-family: var(--kpb-font-display); font-size: 1.5rem; color: var(--kpb-terracotta); }
+.kpb-sum__pay { margin: 0.4rem 0 0; font-size: 0.85rem; }
+.stApp .kpb-form-title { font-size: 1.4rem !important; margin: 0 0 0.4rem; padding: 0; }
+.kpb-confirm {
+    text-align: center;
+    background: var(--kpb-white);
+    border: 1px solid var(--kpb-gold);
+    border-radius: 24px;
+    padding: var(--kpb-space-4) var(--kpb-space-3);
+    margin-bottom: var(--kpb-space-3);
+}
+.kpb-confirm .kpb-overline::before { display: none; }
+.kpb-confirm__ref { font-family: var(--kpb-font-display); font-size: 1.6rem; color: var(--kpb-terracotta); }
