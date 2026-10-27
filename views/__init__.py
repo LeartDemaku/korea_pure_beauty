@@ -1,4 +1,3 @@
 # views/
-# storefront.py — dyqani (një faqe: Hero, Dyqani, Rituali, Kontakti) me shportën dhe dritaret
-# account.py    — kyçja, regjistrimi dhe fjalëkalimi i klientëve
-# admin_view.py — paneli i administratorit
+# admin_view.py — paneli i administratorit (Streamlit).
+# Dyqani për klientët ndodhet te components/storefront (HTML + CSS + JS) dhe store_api.py.

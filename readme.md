@@ -162,12 +162,14 @@ korea_pure_beauty/
 ├── client_app.py        # Storefront entry point (Port 8502): navbar, routing, auth popover
 ├── streamlit_app.py     # Streamlit Cloud entry point (runs client_app.py)
 ├── app.py               # Admin entry point (Port 8501): login + admin panel
+├── components/storefront/  # The storefront website (same design as korea-pure-beauty.mjegulla.app)
+│   ├── index.html         #   loaded full-screen inside Streamlit as a custom component
+│   ├── style.css          #   Marcellus / Jost / Allura, brand palette, responsive layout
+│   └── app.js             #   sections, product modal, cart drawer, checkout, account, ritual quiz
+├── store_api.py           # Bridge to Python: page data + actions (login, sign-up, orders, contact);
+│                          #   prices and totals are always recalculated from the database
 ├── views/
-│   ├── storefront.py    # One-page store (same design as korea-pure-beauty.mjegulla.app): announcement,
-│   │                    # sticky header, arch hero, shop with category pills, dark ritual section,
-│   │                    # contact form + footer, product modal, cart side-drawer with checkout
-│   ├── account.py       # Login, sign-up with e-mail code, password reset (header popover)
-│   └── admin_view.py    # Dashboard, orders, products & inventory, inbox, testimonials, settings
+│   └── admin_view.py      # Dashboard, orders, products & inventory, inbox, testimonials, settings
 ├── database.py          # SQLite schema, safe migrations (PRAGMA table_info), CRUD
 ├── auth.py              # bcrypt passwords, session tokens, OTP codes
 ├── email_service.py     # SMTP notifications (credentials only from .env / st.secrets)
@@ -177,7 +179,7 @@ korea_pure_beauty/
 ├── analytics.py         # Admin KPIs and chart data
 ├── theme.py             # Loads styles/*.css and assets into Streamlit
 ├── create_admin.py      # The only way to create an admin account
-├── styles/              # store.css (storefront: Marcellus / Jost / Allura), main + pages + admin (.css)
+├── styles/              # main + pages + admin (.css) for the admin panel
 ├── assets/              # logo, hero_arch.webp, favicons
 ├── uploads/             # product photos (new uploads are saved as WebP)
 ├── tests/               # python -m unittest discover tests

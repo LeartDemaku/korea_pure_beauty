@@ -101,7 +101,7 @@ def sort_products(products: List[Dict], sort_by: str, counts: Optional[Dict[str,
 # KUISI I RITUALIT
 # ==========================================
 RITUAL_GOALS = ["Shkëlqim & Glow", "Trajtim Aknesh", "Anti-Rrudhë / Retinal", "Hidratim i Thellë"]
-_GOAL_KEYWORDS = {
+GOAL_KEYWORDS = {
     "Shkëlqim & Glow": ("vitamin", "glow", "niacin", "rice", "bright"),
     "Trajtim Aknesh": ("akne", "acne", "bha", "salicyl", "patch", "centella", "cica", "tea tree"),
     "Anti-Rrudhë / Retinal": ("retin", "peptide", "collagen", "ginseng", "age"),
@@ -123,7 +123,7 @@ def _ritual_score(product: Dict, skin_type: str, goal: str, sensitive: bool) -> 
         score += 3
     if sensitive and "Sensibile" in covered:
         score += 2
-    score += sum(2 for keyword in _GOAL_KEYWORDS.get(goal, ()) if keyword in text)
+    score += sum(2 for keyword in GOAL_KEYWORDS.get(goal, ()) if keyword in text)
     if product.get("is_bestseller"):
         score += 1
     return score
