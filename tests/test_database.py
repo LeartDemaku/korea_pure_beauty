@@ -148,5 +148,37 @@ class TestHomePageData(DatabaseTestCase):
             database.create_testimonial('  ', 'Tekst')
 
 
+class TestAdminOperations(DatabaseTestCase):
+    def setUp(self):
+        super().setUp()
+        database.init_database()
+        self.pid = database.create_product('Serum', 'Anua', 'Serum', 'Mikse', 20.0, stock_qty=5)
+        items = [{'product_id': self.pid, 'name': 'Serum', 'qty': 2, 'price': 20.0}]
+        self.oid = database.create_order('Arta', '044111222', 'Prishtinë', 'Rr. 1', items, 40.0)
+        database.reduce_stock_after_order(self.pid, 2)
+
+    def test_cancel_restores_stock_and_reactivate_takes_it_again(self):
+        database.change_order_status(self.oid, 'E Anuluar')
+        self.assertEqual(database.get_product_by_id(self.pid)['stock_qty'], 5)
+        database.change_order_status(self.oid, 'Në Përpunim')
+        self.assertEqual(database.get_product_by_id(self.pid)['stock_qty'], 3)
+
+    def test_invalid_status_rejected(self):
+        with self.assertRaises(ValueError):
+            database.change_order_status(self.oid, 'Diçka')
+
+    def test_stock_never_negative_after_order(self):
+        database.reduce_stock_after_order(self.pid, 99)
+        self.assertEqual(database.get_product_by_id(self.pid)['stock_qty'], 0)
+
+    def test_testimonial_admin_flow(self):
+        tid = database.create_testimonial('Arta', 'Shumë e kënaqur.', 5)
+        database.set_testimonial_visibility(tid, False)
+        self.assertEqual(database.get_visible_testimonials(), [])
+        self.assertEqual(len(database.get_all_testimonials()), 1)
+        database.delete_testimonial(tid)
+        self.assertEqual(database.get_all_testimonials(), [])
+
+
 if __name__ == '__main__':
     unittest.main()

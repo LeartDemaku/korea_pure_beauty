@@ -706,6 +706,49 @@ def get_featured_products(limit: int = 4) -> List[Dict]:
         return [dict(r) for r in rows]
 
 
+def get_all_testimonials() -> List[Dict]:
+    with _db() as conn:
+        rows = conn.execute("SELECT * FROM testimonials ORDER BY created_at DESC, id DESC").fetchall()
+        return [dict(r) for r in rows]
+
+
+def set_testimonial_visibility(testimonial_id: int, visible: bool) -> bool:
+    with _db() as conn:
+        cur = conn.execute("UPDATE testimonials SET is_visible = ? WHERE id = ?", (int(bool(visible)), testimonial_id))
+        return cur.rowcount > 0
+
+
+def delete_testimonial(testimonial_id: int) -> bool:
+    with _db() as conn:
+        cur = conn.execute("DELETE FROM testimonials WHERE id = ?", (testimonial_id,))
+        return cur.rowcount > 0
+
+
+def change_order_status(order_id: int, new_status: str) -> bool:
+    """Ndryshon statusin. Kur porosia anulohet, stoku kthehet; kur riaktivizohet, zbritet sërish."""
+    if new_status not in ORDER_STATUSES:
+        raise ValueError(f"Status i pavlefshëm: {new_status}")
+    order = get_order_by_id(order_id)
+    if not order:
+        return False
+    was_cancelled = order.get('status') == 'E Anuluar'
+    is_cancelled = new_status == 'E Anuluar'
+    if was_cancelled != is_cancelled:
+        try:
+            items = json.loads(order.get('items_json') or '[]')
+        except json.JSONDecodeError:
+            items = []
+        with _db() as conn:
+            for item in items:
+                if item.get('product_id'):
+                    change = int(item.get('qty', 0)) * (1 if is_cancelled else -1)
+                    conn.execute(
+                        "UPDATE products SET stock_qty = MAX(stock_qty + ?, 0) WHERE id = ?",
+                        (change, item['product_id'])
+                    )
+    return update_order_status(order_id, new_status)
+
+
 # ===== STORE SETTINGS =====
 def get_setting(key: str, default: str = '') -> str:
     with _db() as conn:

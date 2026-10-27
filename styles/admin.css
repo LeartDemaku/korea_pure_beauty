@@ -1,0 +1,20 @@
+/* admin.css — Paneli i Administratorit */
+[data-testid="stSidebar"] { background: var(--kpb-white) !important; border-right: 1px solid var(--kpb-sand) !important; }
+.kpb-admin-logo { width: 100%; max-width: 190px; margin: 0.5rem 0 1rem; }
+[data-testid="stSidebar"] [role="radiogroup"] label {
+    padding: 0.55rem 0.75rem;
+    border-radius: 10px;
+    transition: background 0.2s;
+}
+[data-testid="stSidebar"] [role="radiogroup"] label:hover { background: var(--kpb-nude); }
+[data-testid="stSidebar"] [role="radiogroup"] label p { font-size: 0.95rem !important; font-weight: 500; }
+.stApp [data-testid="stMetric"] {
+    background: var(--kpb-white);
+    border: 1px solid var(--kpb-sand);
+    border-radius: var(--kpb-radius-md);
+    padding: 1rem 1.1rem;
+}
+.stApp [data-testid="stMetricValue"] { font-family: var(--kpb-font-display); color: var(--kpb-espresso); }
+.stApp [data-testid="stMetricLabel"] p { font-size: 0.72rem !important; letter-spacing: 0.14em; text-transform: uppercase; color: var(--kpb-text-muted) !important; }
+.stApp [data-testid="stExpander"] details { background: var(--kpb-white); border: 1px solid var(--kpb-sand) !important; border-radius: 12px !important; }
+.stApp h4 { font-family: var(--kpb-font-display) !important; font-weight: 500; }
