@@ -144,3 +144,50 @@ def build_ritual(products: List[Dict], skin_type: str, goal: str, sensitive: boo
             used_ids.add(best["id"])
         routine.append({"step": step_label, "product": best})
     return routine
+
+
+# ==========================================
+# SKEDAT E DYQANIT (si në dizajnin e ri)
+# ==========================================
+STORE_TABS = {
+    "Serume": ("Esenca & Serume",),
+    "Kremra": ("Hidratues & Kremra",),
+    "Pastrim & Toner": ("Pastrues", "Tonerë"),
+    "Mbrojtje Dielli": ("Mbrojtës Dielli (SPF)",),
+    "Maska": ("Maska",),
+}
+
+
+def store_tab_of(product: Dict) -> str:
+    group = category_group(product.get("category", ""))
+    for tab, groups in STORE_TABS.items():
+        if group in groups:
+            return tab
+    return "Të tjera"
+
+
+def filter_by_tab(products: List[Dict], tab: str) -> List[Dict]:
+    if tab == ALL_LABEL:
+        return products
+    return [p for p in products if store_tab_of(p) == tab]
+
+
+def format_eur(amount: float) -> str:
+    """21.9 -> '21,90 €' (presje dhjetore, si në shqip)."""
+    return f"{amount:,.2f}".replace(",", " ").replace(".", ",") + " €"
+
+
+def product_badge(product: Dict, today=None) -> str:
+    """'Më i shituri', '-15%', 'I ri' (30 ditët e fundit) ose tekst bosh."""
+    from datetime import date, datetime, timedelta
+    if product.get("is_bestseller"):
+        return "Më i shituri"
+    discount = database.discount_percent(product["price"], product.get("old_price"))
+    if discount:
+        return f"-{discount}%"
+    today = today or date.today()
+    try:
+        created = datetime.strptime(str(product.get("created_at") or "")[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return ""
+    return "I ri" if today - created <= timedelta(days=30) else ""

@@ -39,6 +39,12 @@ DEFAULT_SETTINGS = {
     'contact_email': '',
     # '1' = mos lejo blerje mbi stokun. Ndize te Admin pasi të futësh stokun e vërtetë.
     'enforce_stock': '0',
+    # Pamja e dyqanit (si te korea-pure-beauty.mjegulla.app)
+    'hero_image_url': 'https://cdn.mjegulla.com/studio/17349/generated/1314db52-2e63-40c3-94c5-0a1459b65af7.webp',
+    'logo_image_url': 'https://cdn.mjegulla.com/studio/17349/chat/1705ac24-b695-4487-96c3-e7273184a5b6.jpg',
+    'store_location': 'Prishtinë, Kosovë',
+    'instagram_url': '',
+    'facebook_url': '',
 }
 
 # Kolonat e reja që shtohen në tabelat ekzistuese pa humbur të dhëna.
@@ -49,6 +55,7 @@ _PRODUCT_NEW_COLUMNS = [
     ('ingredients', "TEXT DEFAULT ''"),
     ('how_to_use', "TEXT DEFAULT ''"),
     ('is_bestseller', 'INTEGER DEFAULT 0'),
+    ('size_label', "TEXT DEFAULT ''"),   # p.sh. "30 ml" ose "70 copë"
 ]
 _ORDER_NEW_COLUMNS = [
     ('tracking_number', "TEXT DEFAULT ''"),
@@ -63,7 +70,7 @@ _ORDER_NEW_COLUMNS = [
 _EDITABLE_PRODUCT_FIELDS = {
     'name', 'brand', 'category', 'skin_type', 'price', 'old_price', 'description',
     'eu_certified', 'is_original', 'image_url', 'stock_qty', 'ingredients',
-    'how_to_use', 'is_bestseller',
+    'how_to_use', 'is_bestseller', 'size_label',
 }
 
 def get_connection():
@@ -409,7 +416,7 @@ def create_product(name: str, brand: str, category: str, skin_type: str,
                    is_original: bool = True, image_url: str = '',
                    old_price: Optional[float] = None, stock_qty: int = 0,
                    ingredients: str = '', how_to_use: str = '',
-                   is_bestseller: bool = False) -> int:
+                   is_bestseller: bool = False, size_label: str = '') -> int:
     # Fushat e reja kanë vlera të paracaktuara, ndaj thirrjet e vjetra
     # në app.py dhe client_app.py vazhdojnë të funksionojnë pa ndryshim.
     conn = get_connection()
@@ -418,10 +425,11 @@ def create_product(name: str, brand: str, category: str, skin_type: str,
         cursor.execute('''
             INSERT INTO products (name, brand, category, skin_type, price, description,
                                   eu_certified, is_original, image_url,
-                                  old_price, stock_qty, ingredients, how_to_use, is_bestseller)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                  old_price, stock_qty, ingredients, how_to_use, is_bestseller, size_label)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (name, brand, category, skin_type, price, description, eu_certified, is_original, image_url,
-              old_price, max(0, int(stock_qty)), ingredients, how_to_use, int(bool(is_bestseller))))
+              old_price, max(0, int(stock_qty)), ingredients, how_to_use, int(bool(is_bestseller)),
+              size_label.strip()))
         conn.commit()
         return cursor.lastrowid
     finally:

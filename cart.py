@@ -26,6 +26,7 @@ def add_to_cart(product: dict, quantity: int = 1, price: Optional[float] = None,
             "brand": product['brand'],
             "price": unit_price,
             "image": product['image_url'],
+            "size": product.get('size_label') or "",
             "qty": quantity,
         }
     st.session_state.animated_item = {"name": product['name'], "price": unit_price}

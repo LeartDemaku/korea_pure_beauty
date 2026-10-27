@@ -133,6 +133,12 @@ The project was executed through nine comprehensive engineering phases:
 
 ---
 
+### Phase 10: Ultra-Modern Transformation (Master Plan)
+- **Design system**: Porcelain Nude / Terracotta / Dark Espresso / Champagne Gold palette, Cormorant Garamond + Playfair Display + Plus Jakarta Sans.
+- **Storefront**: new home page (arch hero, dark ritual section), shop with filters and Quick-View, ritual quiz, contact + FAQ, privacy & terms, one-step checkout with free-shipping progress.
+- **Admin**: KPI dashboard, order workflow with stock restore on cancel, printable invoices, inline inventory editing, WebP uploads, inbox, testimonials and store settings.
+- **Security**: random session tokens instead of `?user=`, no public admin sign-up, no secrets in code.
+
 ## Tech Stack
 
 | Component | Technology | Rationale |
@@ -153,38 +159,29 @@ The project was executed through nine comprehensive engineering phases:
 
 ```
 korea_pure_beauty/
-│
-├── streamlit_app.py           # Production entry point for Streamlit Cloud hosting
-├── client_app.py              # Customer-facing storefront and checkout (Local / Port 8502)
-├── app.py                     # Administrative dashboard & inventory management (Port 8501)
-├── database.py                # Database initialization, queries, multi-token search, and migrations
-├── auth.py                    # Password hashing, user authentication, sessions, and OTP logic
-├── theme.py                   # Theme engine: loads CSS files from styles/ into Streamlit
-├── theme_preview.py           # Design-system preview page (Port 8503)
-├── create_admin.py            # The only way to create an admin account (terminal)
-│
-├── styles/
-│   └── main.css               # Design tokens: palette, typography, buttons, badges, cards
-├── tests/                     # Automated tests (python -m unittest discover tests)
-├── email_service.py           # SMTP mailer, order dispatch alerts, and HTML email templates
-│
-├── assets/                    # Optimized brand identity assets
-│   ├── logo.png               # Official transparent brand logo
-│   ├── banner.png             # Full-width luxury product banner
-│   ├── favicon_badge.png      # High-resolution browser tab icon
-│   ├── favicon.ico            # Standard multi-resolution favicon
-│   └── app_icon.ico           # Windows application desktop icon
-│
-├── uploads/                   # Local storage for uploaded product images
-├── korea_beauty.db            # SQLite database file (currently committed, see Security Notes)
-├── .env                       # Secret environment variables (gitignored)
-├── .env.example               # Template for environment variables
-├── .gitignore                 # Exclusion rules for secrets, cache, and db files
-│
-├── Hap_Admin.bat              # Batch launcher for Admin panel (Port 8501)
-├── launch_client.bat          # Batch launcher for Client storefront (Port 8502)
-├── launch_client.vbs          # Silent background launcher for client store
-└── Krijo_Ikone_Desktop.py     # Script to generate a desktop shortcut with brand icon
+├── client_app.py        # Storefront entry point (Port 8502): navbar, routing, auth popover
+├── streamlit_app.py     # Streamlit Cloud entry point (runs client_app.py)
+├── app.py               # Admin entry point (Port 8501): login + admin panel
+├── views/
+│   ├── storefront.py    # One-page store (same design as korea-pure-beauty.mjegulla.app): announcement,
+│   │                    # sticky header, arch hero, shop with category pills, dark ritual section,
+│   │                    # contact form + footer, product modal, cart side-drawer with checkout
+│   ├── account.py       # Login, sign-up with e-mail code, password reset (header popover)
+│   └── admin_view.py    # Dashboard, orders, products & inventory, inbox, testimonials, settings
+├── database.py          # SQLite schema, safe migrations (PRAGMA table_info), CRUD
+├── auth.py              # bcrypt passwords, session tokens, OTP codes
+├── email_service.py     # SMTP notifications (credentials only from .env / st.secrets)
+├── cart.py              # Cart logic (one place)
+├── catalog.py           # Category groups, skin types, filtering, sorting, ritual builder
+├── checkout.py          # Shipping, coupon, delivery validation, WhatsApp links
+├── analytics.py         # Admin KPIs and chart data
+├── theme.py             # Loads styles/*.css and assets into Streamlit
+├── create_admin.py      # The only way to create an admin account
+├── styles/              # store.css (storefront: Marcellus / Jost / Allura), main + pages + admin (.css)
+├── assets/              # logo, hero_arch.webp, favicons
+├── uploads/             # product photos (new uploads are saved as WebP)
+├── tests/               # python -m unittest discover tests
+└── .streamlit/config.toml  # light theme with the brand palette
 ```
 
 ---
@@ -214,7 +211,7 @@ source venv/bin/activate
 
 ### 4. Install Dependencies
 ```bash
-pip install streamlit pandas pillow pywin32
+pip install -r requirements.txt
 ```
 
 ### 5. Environment Configuration
@@ -225,7 +222,7 @@ SMTP_PORT=587
 SMTP_USER=your_email@gmail.com
 SMTP_PASSWORD=your_gmail_app_password
 SMTP_FROM_NAME=Korea Pure Beauty
-ADMIN_NOTIFICATION_EMAIL=leart.demaku2006@gmail.com
+ADMIN_NOTIFICATION_EMAIL=where_admin_alerts_go@example.com   # optional, defaults to SMTP_USER
 ```
 
 #### Streamlit Cloud Secrets Configuration

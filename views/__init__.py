@@ -1,3 +1,4 @@
 # views/
-# Çdo faqe e dyqanit ka skedarin e vet këtu (home_view.py, shop_view.py, ...).
-# Kështu client_app.py mbetet i shkurtër dhe çdo faqe gjendet lehtë.
+# storefront.py — dyqani (një faqe: Hero, Dyqani, Rituali, Kontakti) me shportën dhe dritaret
+# account.py    — kyçja, regjistrimi dhe fjalëkalimi i klientëve
+# admin_view.py — paneli i administratorit

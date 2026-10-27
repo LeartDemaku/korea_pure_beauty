@@ -6,6 +6,7 @@ import io
 import os
 import uuid
 from datetime import date
+from typing import Callable
 
 import pandas as pd
 import streamlit as st
@@ -17,7 +18,8 @@ import catalog
 import checkout
 import database
 import theme
-from views.components import ImageUriFunction
+
+ImageUriFunction = Callable[[str, int, int], str]
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 UPLOAD_DIR = "uploads"
@@ -233,6 +235,8 @@ def _product_form(form_key: str, product: dict | None = None) -> dict | None:
                                                 value=float(product.get("old_price") or 0.0), step=0.5, format="%.2f",
                                                 help="Lëreni 0 nëse s'ka zbritje")
             stock = stock_column.number_input("Stoku (copë)", min_value=0, value=int(product.get("stock_qty") or 0))
+            size_label = st.text_input("Paketimi (p.sh. 30 ml, 70 copë)", value=product.get("size_label") or "",
+                                       max_chars=30)
         with right:
             image = st.file_uploader("Fotoja (Drag & Drop, ruhet si WebP)", type=["png", "jpg", "jpeg", "webp"])
             description = st.text_area("Përshkrimi", value=product.get("description") or "", height=90)
@@ -267,7 +271,7 @@ def _product_form(form_key: str, product: dict | None = None) -> dict | None:
         "name": name.strip(), "brand": final_brand, "category": category, "skin_type": skin_type,
         "price": round(price, 2), "old_price": round(old_price, 2) if old_price else None,
         "stock_qty": int(stock), "description": description.strip(), "ingredients": ingredients.strip(),
-        "how_to_use": how_to_use.strip(), "is_bestseller": int(is_bestseller),
+        "how_to_use": how_to_use.strip(), "is_bestseller": int(is_bestseller), "size_label": size_label.strip(),
         "eu_certified": int(eu_certified), "is_original": int(is_original), "image_url": image_path,
     }
 
@@ -425,6 +429,11 @@ def _render_settings() -> None:
         hours = st.text_input("Orari i shërbimit", value=settings.get("business_hours", ""), max_chars=80,
                               placeholder="p.sh. E hënë – E shtunë, 09:00–20:00")
         contact_email = st.text_input("Email-i i kontaktit", value=settings.get("contact_email", ""), max_chars=120)
+        location = st.text_input("Vendndodhja (në footer)", value=settings.get("store_location", ""), max_chars=60)
+        instagram = st.text_input("Instagram (lidhja e plotë)", value=settings.get("instagram_url", ""), max_chars=200)
+        facebook = st.text_input("Facebook (lidhja e plotë)", value=settings.get("facebook_url", ""), max_chars=200)
+        hero_url = st.text_input("Fotoja e Hero-s (URL https)", value=settings.get("hero_image_url", ""), max_chars=300)
+        logo_url = st.text_input("Logoja (URL https)", value=settings.get("logo_image_url", ""), max_chars=300)
         enforce = st.checkbox("Mos lejo porosi mbi stokun (ndizeni pasi të keni futur stokun e vërtetë)",
                               value=settings.get("enforce_stock") == "1")
         saved = st.form_submit_button("Ruaj cilësimet", type="primary")
@@ -435,11 +444,16 @@ def _render_settings() -> None:
             st.error("Numri i WhatsApp duhet të ketë 8–15 shifra.")
         elif contact_email.strip() and not checkout.EMAIL_PATTERN.match(contact_email.strip()):
             st.error("Email-i i kontaktit nuk duket i saktë.")
+        elif any(url.strip() and not url.strip().startswith("https://")
+                 for url in (instagram, facebook, hero_url, logo_url)):
+            st.error("Lidhjet duhet të fillojnë me https://")
         else:
             for key, value in {
                 "announcement_text": announcement, "whatsapp_number": digits,
                 "shipping_fee": f"{fee:.2f}", "free_shipping_threshold": f"{threshold:.2f}",
                 "business_hours": hours, "contact_email": contact_email, "enforce_stock": "1" if enforce else "0",
+                "store_location": location, "instagram_url": instagram.strip(), "facebook_url": facebook.strip(),
+                "hero_image_url": hero_url.strip(), "logo_image_url": logo_url.strip(),
             }.items():
                 database.set_setting(key, value)
             st.success("Cilësimet u ruajtën.")

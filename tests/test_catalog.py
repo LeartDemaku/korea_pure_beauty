@@ -57,5 +57,19 @@ class TestCatalog(unittest.TestCase):
         self.assertIsNone(routine[1]["product"])
 
 
+class TestStoreTabs(unittest.TestCase):
+    def test_tabs_and_badges(self):
+        from datetime import date
+        self.assertEqual(catalog.store_tab_of(PRODUCTS[0]), "Pastrim & Toner")
+        self.assertEqual(catalog.store_tab_of(PRODUCTS[3]), "Pastrim & Toner")
+        self.assertEqual([p["id"] for p in catalog.filter_by_tab(PRODUCTS, "Kremra")], [3])
+        self.assertEqual(catalog.format_eur(21.9), "21,90 €")
+        self.assertEqual(catalog.format_eur(1234.5), "1 234,50 €")
+        self.assertEqual(catalog.product_badge({"price": 10, "is_bestseller": 1}), "Më i shituri")
+        self.assertEqual(catalog.product_badge({"price": 17, "old_price": 20}), "-15%")
+        self.assertEqual(catalog.product_badge({"price": 10, "created_at": "2026-10-20"}, date(2026, 10, 27)), "I ri")
+        self.assertEqual(catalog.product_badge({"price": 10, "created_at": "2026-01-01"}, date(2026, 10, 27)), "")
+
+
 if __name__ == "__main__":
     unittest.main()
