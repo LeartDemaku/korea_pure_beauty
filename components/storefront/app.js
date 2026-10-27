@@ -95,6 +95,10 @@
   }
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  // Elementi që lëviz (scroll). Dokumenti vetë nuk lëviz brenda Streamlit.
+  function scroller() { return document.getElementById("app"); }
+  function lockScroll(locked) { scroller().classList.toggle("is-locked", locked); }
+
   function products() { return (state.data && state.data.products) || []; }
   function settings() { return (state.data && state.data.settings) || {}; }
   function productById(id) { return products().find(function (p) { return p.id === id; }); }
@@ -182,6 +186,8 @@
     bindGlobal();
     afterMainRender();
     updateHeader();
+    scroller().setAttribute("tabindex", "-1");
+    scroller().focus({ preventScroll: true });
   }
 
   function renderMain() {
@@ -434,9 +440,9 @@
     document.addEventListener("submit", function (e) {
       if (e.target.id === "contact-form") { e.preventDefault(); submitContact(e.target); }
     });
-    window.addEventListener("scroll", function () {
+    scroller().addEventListener("scroll", function () {
       const bar = $("#nav-bar");
-      if (bar) bar.classList.toggle("is-scrolled", window.scrollY > 8);
+      if (bar) bar.classList.toggle("is-scrolled", scroller().scrollTop > 8);
     }, { passive: true });
     window.addEventListener("resize", setFrameHeight);
   }
@@ -529,7 +535,7 @@
     const overlay = $("#overlay");
     overlay.classList.add("is-open");
     overlay.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
+    lockScroll(true);
     modal.scrollTop = 0;
     setTimeout(function () { const f = modal.querySelector("input, .btn, button:not(.modal__close)"); if (f) f.focus({ preventScroll: true }); }, 60);
   }
@@ -537,7 +543,7 @@
     const overlay = $("#overlay");
     overlay.classList.remove("is-open");
     overlay.setAttribute("aria-hidden", "true");
-    if (!isDrawerOpen()) document.body.style.overflow = "";
+    if (!isDrawerOpen()) lockScroll(false);
     if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
   }
 
@@ -768,14 +774,14 @@
     const d = $("#drawer");
     d.classList.add("is-open");
     d.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
+    lockScroll(true);
     toggleMenu(false);
   }
   function closeDrawer() {
     const d = $("#drawer");
     d.classList.remove("is-open");
     d.setAttribute("aria-hidden", "true");
-    document.body.style.overflow = "";
+    if (!$("#overlay").classList.contains("is-open")) lockScroll(false);
     if (state.drawerStep === "done") { state.drawerStep = "items"; state.lastOrder = null; }
   }
 
