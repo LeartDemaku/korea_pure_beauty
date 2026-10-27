@@ -7,6 +7,9 @@ import io
 import os
 import traceback
 
+import fresh_modules
+fresh_modules.reload_if_changed()  # pas çdo push: lexo kodin e ri, jo atë në memorie
+
 import streamlit as st
 import streamlit.components.v1 as components
 from PIL import Image
