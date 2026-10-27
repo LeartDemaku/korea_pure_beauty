@@ -1,0 +1,102 @@
+/* =====================================================================
+   layout.css — pjesët e përbashkëta të çdo faqeje:
+   shiriti i njoftimeve, navbar-i dhe footer-i.
+   ===================================================================== */
+
+/* --- Shiriti i njoftimeve (tekst nga store_settings) --- */
+.kpb-announce {
+    background: var(--kpb-espresso);
+    color: var(--kpb-text-on-dark);
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 0.6rem 1rem;
+    border-radius: var(--kpb-radius-pill);
+    margin-bottom: var(--kpb-space-2);
+}
+
+/* --- Navbar --- */
+.st-key-kpb-navbar {
+    border-bottom: 1px solid var(--kpb-sand);
+    padding-bottom: 0.75rem;
+    margin-bottom: var(--kpb-space-3);
+}
+.kpb-nav-logo { height: 54px; width: auto; display: block; }
+
+/* Butonat e menysë: tekst i thjeshtë, pa sfond */
+.stApp .st-key-kpb-nav button,
+.stApp .st-key-kpb-nav [data-testid^="stBaseButton"] {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: var(--kpb-text) !important;
+    border-radius: 0 !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    transform: none !important;
+}
+.stApp .st-key-kpb-nav button p { font-size: 0.75rem !important; font-weight: 600 !important; }
+.stApp .st-key-kpb-nav button:hover { color: var(--kpb-terracotta) !important; }
+/* Faqja aktive: ngjyrë terracotta + vijë e hollë poshtë */
+.stApp .st-key-kpb-nav button[kind="primary"],
+.stApp .st-key-kpb-nav [data-testid="stBaseButton-primary"] {
+    color: var(--kpb-terracotta) !important;
+    box-shadow: inset 0 -1px 0 var(--kpb-terracotta) !important;
+}
+
+/* --- Footer --- */
+.kpb-footer {
+    background: var(--kpb-espresso);
+    color: var(--kpb-text-on-dark);
+    border-radius: 24px;
+    padding: var(--kpb-space-5) var(--kpb-space-4) var(--kpb-space-3);
+    margin-top: var(--kpb-space-5);
+    border-top: 1px solid var(--kpb-gold);
+}
+.kpb-footer__grid {
+    display: grid;
+    grid-template-columns: 1.6fr repeat(3, 1fr);
+    gap: var(--kpb-space-4);
+}
+.kpb-footer__logo { height: 64px; width: auto; margin-bottom: var(--kpb-space-2); }
+.kpb-footer__wordmark { font-family: var(--kpb-font-display); font-size: 1.6rem; }
+.kpb-footer p, .kpb-footer li {
+    color: rgba(243, 235, 228, 0.72);
+    font-size: 0.9rem;
+    line-height: 1.7;
+}
+.kpb-footer h4 {
+    font-family: var(--kpb-font-body) !important;
+    font-size: 0.72rem !important;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--kpb-gold) !important;
+    margin: 0 0 var(--kpb-space-2);
+    padding: 0;
+}
+.kpb-footer ul { list-style: none; padding: 0; margin: 0; }
+.kpb-footer li { margin: 0 0 0.35rem; }
+.kpb-footer a { color: var(--kpb-text-on-dark) !important; text-decoration: none; border-bottom: 1px solid rgba(216, 180, 148, 0.5); }
+.kpb-footer a:hover { border-color: var(--kpb-gold); }
+.kpb-footer__bottom {
+    margin-top: var(--kpb-space-4);
+    padding-top: var(--kpb-space-3);
+    border-top: 1px solid rgba(216, 180, 148, 0.25);
+    font-size: 0.8rem;
+    color: rgba(243, 235, 228, 0.55);
+}
+
+@media (max-width: 900px) {
+    .kpb-footer__grid { grid-template-columns: 1fr 1fr; }
+    .kpb-footer__brand { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+    .kpb-footer { padding: var(--kpb-space-4) var(--kpb-space-3) var(--kpb-space-3); }
+    .kpb-footer__grid { grid-template-columns: 1fr; gap: var(--kpb-space-3); }
+    .kpb-announce { border-radius: var(--kpb-radius-sm); letter-spacing: 0.12em; }
+}

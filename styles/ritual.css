@@ -1,0 +1,48 @@
+/* ritual.css — Seksioni Dark Espresso me numrat linearë 01–04 */
+.kpb-ritual { scroll-margin-top: 1.5rem; margin: var(--kpb-space-2) 0 var(--kpb-space-5); }
+.kpb-ritual__head {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: var(--kpb-space-4);
+    align-items: end;
+    margin-bottom: var(--kpb-space-4);
+}
+.kpb-ritual__head .kpb-h2 { margin: 0.9rem 0 0; }
+.kpb-ritual__head .kpb-lead { margin: 0; }
+.kpb-overline--gold { color: var(--kpb-gold); }
+.kpb-ritual__steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--kpb-space-3);
+}
+.kpb-ritual__step {
+    border-top: 1px solid rgba(216, 180, 148, 0.35);
+    padding-top: var(--kpb-space-3);
+    transition: border-color 0.4s var(--kpb-ease);
+}
+.kpb-ritual__step:hover { border-color: var(--kpb-gold); }
+.kpb-ritual__action {
+    display: block;
+    margin-top: 1rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--kpb-gold);
+}
+.kpb-section-dark .kpb-ritual__title {
+    font-family: var(--kpb-font-display) !important;
+    font-size: 1.5rem !important;
+    font-weight: 500;
+    margin: 0.35rem 0 0.6rem;
+    padding: 0;
+}
+.kpb-ritual__text { font-size: 0.92rem; line-height: 1.7; color: rgba(243, 235, 228, 0.7); margin: 0; }
+
+@media (max-width: 1000px) {
+    .kpb-ritual__head { grid-template-columns: 1fr; gap: var(--kpb-space-2); }
+    .kpb-ritual__steps { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+    .kpb-ritual__steps { grid-template-columns: 1fr; }
+}

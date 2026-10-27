@@ -1,0 +1,8 @@
+# Tema e Streamlit për të gjitha aplikacionet në këtë dosje.
+# "light" e mban dyqanin në ngjyrat Nude edhe kur kompjuteri/telefoni është në Dark Mode.
+[theme]
+base = "light"
+primaryColor = "#AF6A4E"
+backgroundColor = "#FAF6F2"
+secondaryBackgroundColor = "#F3EBE4"
+textColor = "#261B15"

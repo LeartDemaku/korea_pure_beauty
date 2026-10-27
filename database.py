@@ -180,6 +180,19 @@ def init_database():
         list(DEFAULT_SETTINGS.items())
     )
 
+    # Tabela e re: vlerësimet e klientëve (vetëm vlerësime të vërteta, të shtuara nga admini)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS testimonials (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_name TEXT NOT NULL,
+            city TEXT DEFAULT '',
+            text TEXT NOT NULL,
+            rating INTEGER NOT NULL DEFAULT 5 CHECK (rating BETWEEN 1 AND 5),
+            is_visible INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     # Tabela e re: sesionet e kyçjes (zëvendëson ?user=emri, i cili ishte i pasigurt).
     # Ruajmë vetëm hash-in e token-it, kurrë vetë token-in.
     cursor.execute('''
@@ -635,6 +648,41 @@ def update_message_status(message_id: int, status: str) -> bool:
 def count_unread_messages() -> int:
     with _db() as conn:
         return conn.execute("SELECT COUNT(*) FROM messages WHERE status = 'I Palexuar'").fetchone()[0]
+
+
+# ===== TESTIMONIALS (vlerësimet e klientëve) =====
+def create_testimonial(customer_name: str, text: str, rating: int = 5, city: str = '') -> int:
+    customer_name, text = customer_name.strip(), text.strip()
+    if not customer_name or not text:
+        raise ValueError("Emri dhe teksti i vlerësimit janë të detyrueshëm.")
+    rating = int(rating)
+    if not 1 <= rating <= 5:
+        raise ValueError("Vlerësimi duhet të jetë nga 1 deri në 5 yje.")
+    with _db() as conn:
+        cur = conn.execute(
+            "INSERT INTO testimonials (customer_name, city, text, rating) VALUES (?, ?, ?, ?)",
+            (customer_name, city.strip(), text, rating)
+        )
+        return cur.lastrowid
+
+
+def get_visible_testimonials(limit: int = 6) -> List[Dict]:
+    with _db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM testimonials WHERE is_visible = 1 ORDER BY created_at DESC, id DESC LIMIT ?",
+            (limit,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_featured_products(limit: int = 4) -> List[Dict]:
+    """Bestsellers për faqen kryesore; nëse admini s'ka shënuar asnjë, merr më të rejat."""
+    featured = get_bestsellers(limit)
+    if featured:
+        return featured
+    with _db() as conn:
+        rows = conn.execute("SELECT * FROM products ORDER BY created_at DESC, id DESC LIMIT ?", (limit,)).fetchall()
+        return [dict(r) for r in rows]
 
 
 # ===== STORE SETTINGS =====

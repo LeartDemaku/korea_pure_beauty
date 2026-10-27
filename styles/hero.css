@@ -1,0 +1,55 @@
+/* hero.css — Hero Section "Luminous Nude" me harkun arkitektonik */
+.st-key-kpb-hero { padding: clamp(0.5rem, 3vw, 2.5rem) 0 clamp(2.5rem, 6vw, 5rem); }
+.kpb-hero__text { animation: kpb-fade-up 0.9s var(--kpb-ease) both; }
+.kpb-hero__text .kpb-display { margin: 1.1rem 0 1.2rem; }
+.st-key-kpb-hero-actions { margin-top: 0.6rem; max-width: 30rem; }
+
+.kpb-hero__visual {
+    position: relative;
+    width: min(100%, 470px);
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    padding: 1.25rem;
+    animation: kpb-fade-up 1.1s 0.15s var(--kpb-ease) both;
+}
+.kpb-hero__visual::before {            /* linja e hollë e artë rreth harkut */
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--kpb-gold);
+    border-radius: 999px 999px 28px 28px;
+    opacity: 0.7;
+}
+.kpb-hero__arch {
+    position: relative;
+    width: min(100%, 430px);
+    aspect-ratio: 4 / 5;
+    border-radius: 999px 999px 22px 22px;
+    overflow: hidden;
+    background: var(--kpb-white);
+    box-shadow: var(--kpb-shadow-lift);
+}
+.kpb-hero__arch img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 48% 62%;
+    transform: scale(1.04);
+    transition: transform 1.2s var(--kpb-ease);
+}
+.kpb-hero__visual:hover .kpb-hero__arch img { transform: scale(1.08); }
+.kpb-hero__tag {
+    position: absolute;
+    left: -1.25rem;
+    bottom: 12%;
+    box-shadow: var(--kpb-shadow-soft);
+    animation: kpb-float 5s ease-in-out infinite;
+}
+
+@keyframes kpb-fade-up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes kpb-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+@media (max-width: 640px) {
+    .kpb-hero__tag { left: 50%; bottom: -0.25rem; transform: translateX(-50%); animation: none; white-space: nowrap; }
+}

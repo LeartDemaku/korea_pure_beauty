@@ -63,6 +63,8 @@
    2. RESET & BAZA E STREAMLIT
    Streamlit ka stilet e veta; këto rregulla vendosin identitetin tonë.
    --------------------------------------------------------------------- */
+:root { color-scheme: light !important; }   /* gjithmonë temë e çelur */
+.stApp [data-testid="stHeaderActionElements"] { display: none; }  /* pa ikonat e lidhjes te titujt */
 .stApp {
     color-scheme: light;
     background: var(--kpb-nude) !important;

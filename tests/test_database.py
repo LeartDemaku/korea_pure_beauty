@@ -127,5 +127,26 @@ class TestMessagesAndOrders(DatabaseTestCase):
         self.assertEqual(order['payment_method'], 'Para në dorë')
 
 
+class TestHomePageData(DatabaseTestCase):
+    def setUp(self):
+        super().setUp()
+        database.init_database()
+
+    def test_featured_falls_back_to_newest_products(self):
+        first = database.create_product('A', 'Anua', 'Toner', 'Mikse', 10.0)
+        second = database.create_product('B', 'COSRX', 'Serum', 'Mikse', 12.0)
+        self.assertEqual([p['id'] for p in database.get_featured_products()], [second, first])
+        database.update_product_fields(first, is_bestseller=1)
+        self.assertEqual([p['id'] for p in database.get_featured_products()], [first])
+
+    def test_testimonials_validation_and_visibility(self):
+        database.create_testimonial('Arta', 'Lëkura ime ndihet më e butë.', 5, 'Prishtinë')
+        self.assertEqual(len(database.get_visible_testimonials()), 1)
+        with self.assertRaises(ValueError):
+            database.create_testimonial('Arta', 'Tekst', 6)
+        with self.assertRaises(ValueError):
+            database.create_testimonial('  ', 'Tekst')
+
+
 if __name__ == '__main__':
     unittest.main()

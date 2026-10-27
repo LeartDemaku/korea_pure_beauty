@@ -12,6 +12,9 @@ import html
 import database
 import auth
 import email_service
+import theme
+import cart
+from views import home_view
 import urllib.parse
 import unicodedata
 
@@ -278,7 +281,7 @@ if "selected_product_id" not in st.session_state:
 if "editing_product_id" not in st.session_state:
     st.session_state.editing_product_id = None
 if "current_page" not in st.session_state:
-    st.session_state.current_page = "shop"
+    st.session_state.current_page = "home"  # faqja e parë është Ballina
 if "animated_item" not in st.session_state:
     st.session_state.animated_item = None
 if "pending_verification_email" not in st.session_state:
@@ -1119,6 +1122,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Sistemi i ri i dizajnit (Faza 1–2). Ngarkohet PAS stileve të vjetra, ndaj ka përparësi.
+theme.load_css("main", "layout")
+
 
 # ==========================================
 # 🔍 INTERACTIVE HD ZOOM VIEWER & IMAGE OPTIMIZATION
@@ -1602,21 +1608,7 @@ def render_product_detail_page(product_id):
             st.write("")
             st.write("")
             if st.button("🛒 Shto në Shportë", use_container_width=True, type="primary"):
-                pid = str(p['id'])
-                if pid in st.session_state.cart:
-                    st.session_state.cart[pid]['qty'] += qty_selected
-                else:
-                    st.session_state.cart[pid] = {
-                        "name": p['name'],
-                        "brand": p['brand'],
-                        "price": p['price'],
-                        "image": p['image_url'],
-                        "qty": qty_selected
-                    }
-                st.session_state.animated_item = {
-                    "name": p['name'],
-                    "price": p['price']
-                }
+                cart.add_to_cart(p, qty_selected)
                 st.rerun()
 
 # ==========================================
@@ -1659,6 +1651,7 @@ def render_client_app():
         if is_admin:
             st.caption("MENYJA E ADMINISTRATORIT")
             nav_buttons = [
+                ("home", "🏠 Ballina"),
                 ("shop", "🛍️ Dyqani / Katalogu"),
                 ("cart", f"🛒 Shporta{cart_badge}"),
                 ("add", "➕ Shto Produkt (Drag & Drop)"),
@@ -1668,6 +1661,7 @@ def render_client_app():
         else:
             st.caption("MENYJA E BLERJEVE")
             nav_buttons = [
+                ("home", "🏠 Ballina"),
                 ("shop", "🛍️ Dyqani / Katalogu"),
                 ("cart", f"🛒 Shporta{cart_badge}")
             ]
@@ -1709,30 +1703,30 @@ def render_client_app():
     # ==========================================
     # 🌟 TOP HEADER BAR (Kyçja / Regjistrimi në të Djathtë Lart)
     # ==========================================
-    top_col_brand, top_col_auth = st.columns([2.6, 1.4])
-    with top_col_brand:
-        fav_icon_uri = get_favicon_data_uri()
-        if fav_icon_uri:
-            st.markdown(f"""
-            <div class="top-header-brand-wrap" style="display: flex; align-items: center; gap: 12px; padding: 2px 0;">
-                <img src="{fav_icon_uri}" alt="KPB" style="width: 38px; height: 38px; border-radius: 50%; box-shadow: 0 3px 10px rgba(255, 117, 140, 0.22); border: 1px solid rgba(255, 184, 198, 0.5); object-fit: cover;" />
-                <div style="line-height: 1.25;">
-                    <div style="font-size: 1.05rem; font-weight: 800; color: #ff758c; letter-spacing: 0.5px;">
-                        KOREA PURE BEAUTY
-                    </div>
-                    <div class="brand-subtext" style="font-size: 0.82rem; font-weight: 600; opacity: 0.95;">
-                        ✨ Rituali Luksoz për një Lëkurë të Shëndetshme & me Shkëlqim Natyral
-                    </div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            st.markdown(
-                "<div style='padding: 8px 0; font-size: 0.95rem; font-weight: 700; color: #ff758c;'>"
-                "🌸 KOREA PURE BEAUTY <span class='brand-subtext' style='font-weight: 600; font-size: 0.85rem; opacity: 0.95;'>| ✨ Rituali Luksoz për një Lëkurë të Shëndetshme & me Shkëlqim Natyral</span>"
-                "</div>",
-                unsafe_allow_html=True
-            )
+    # Shiriti i njoftimeve (teksti ndryshohet nga Admin-i te store_settings)
+    announcement = database.get_setting("announcement_text")
+    if announcement:
+        st.markdown(f'<div class="kpb-announce">{html.escape(announcement)}</div>', unsafe_allow_html=True)
+
+    with st.container(key="kpb-navbar"):
+        top_col_brand, top_col_nav, top_col_auth = st.columns([1.1, 2.1, 1.5], vertical_alignment="center")
+        with top_col_brand:
+            logo_uri = theme.asset_data_uri("logo.png")
+            if logo_uri:
+                st.markdown(f'<img class="kpb-nav-logo" src="{logo_uri}" alt="Korea Pure Beauty" />', unsafe_allow_html=True)
+            else:
+                st.markdown('<span class="kpb-footer__wordmark">Korea Pure Beauty</span>', unsafe_allow_html=True)
+        with top_col_nav:
+            with st.container(key="kpb-nav"):
+                navbar_items = [("home", "Ballina"), ("shop", "Dyqani"), ("cart", f"Shporta ({total_cart_items})")]
+                for nav_column, (page_key, page_label) in zip(st.columns(len(navbar_items)), navbar_items):
+                    with nav_column:
+                        is_current = st.session_state.current_page == page_key
+                        if st.button(page_label, key=f"top_nav_{page_key}", use_container_width=True,
+                                     type="primary" if is_current else "secondary"):
+                            st.session_state.current_page = page_key
+                            st.session_state.selected_product_id = None
+                            st.rerun()
     with top_col_auth:
         if st.session_state.authenticated:
             u_col, out_col = st.columns([1.6, 1])
@@ -1926,6 +1920,11 @@ def render_client_app():
 
     current_page = st.session_state.current_page
 
+    # Faqja kryesore (Ballina) — Faza 2
+    if current_page == "home":
+        home_view.render_home(get_image_data_uri)
+        return
+
     # Nëse po shikon detajet e produktit
     if current_page == "shop" and st.session_state.selected_product_id is not None:
         render_product_detail_page(st.session_state.selected_product_id)
@@ -2044,21 +2043,7 @@ def render_client_app():
                             st.rerun()
                     with col_b2:
                         if st.button("🛒 Shto", key=f"btn_cart_{p['id']}", use_container_width=True, type="primary"):
-                            pid = str(p['id'])
-                            if pid in st.session_state.cart:
-                                st.session_state.cart[pid]['qty'] += 1
-                            else:
-                                st.session_state.cart[pid] = {
-                                    "name": p['name'],
-                                    "brand": p['brand'],
-                                    "price": p['price'],
-                                    "image": p['image_url'],
-                                    "qty": 1
-                                }
-                            st.session_state.animated_item = {
-                                "name": p['name'],
-                                "price": p['price']
-                            }
+                            cart.add_to_cart(p)
                             st.rerun()
 
     # ----------------------------------------------------

@@ -285,6 +285,9 @@ if "animated_item" not in st.session_state:
 
 
 
+# Tema e çelur gjithmonë (në përputhje me .streamlit/config.toml)
+st.markdown("<style>:root { color-scheme: light !important; }</style>", unsafe_allow_html=True)
+
 # ==========================================
 # 🔑 AUTO-LOGIN PAS ÇDO REFRESH (F5)
 # ==========================================
