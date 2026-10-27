@@ -1,6 +1,8 @@
 # auth.py
 import re
 import random
+import hashlib
+import secrets
 import bcrypt
 import database
 import email_service
@@ -105,6 +107,40 @@ def resend_client_code(email: str) -> tuple[bool, str, str]:
     sent, msg = email_service.send_verification_email(email, name, new_code)
     return sent, msg, new_code
 
+# ==========================================
+# SESIONET E SIGURTA
+# Pas kyçjes, adresa merr ?session=<token>. Token-i është 43 karaktere të rastësishme
+# (secrets.token_urlsafe), ndaj nuk mund të merret me mend si emri i përdoruesit.
+# ==========================================
+SESSION_VALID_DAYS = 7
+ADMIN_MIN_PASSWORD_LENGTH = 8
+
+
+def _hash_token(token: str) -> str:
+    # Në databazë ruhet vetëm hash-i: edhe nëse dikush e lexon databazën,
+    # nuk mund ta përdorë për t'u kyçur.
+    return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+
+def start_session(user: dict) -> str:
+    """Krijon një sesion të ri dhe kthen token-in që vendoset në adresë."""
+    token = secrets.token_urlsafe(32)
+    database.create_session(user['id'], _hash_token(token), SESSION_VALID_DAYS)
+    return token
+
+
+def resume_session(token: str | None) -> dict | None:
+    """Kthen përdoruesin nëse token-i është i vlefshëm, përndryshe None."""
+    if not token or len(token) > 128:
+        return None
+    return database.get_user_by_session(_hash_token(token))
+
+
+def end_session(token: str | None) -> None:
+    if token:
+        database.delete_session(_hash_token(token))
+
+
 def register_user(username: str, password: str, role: str = 'client') -> tuple[bool, str]:
     """Regjistrim bazë/admin (përputhshmëri me app.py)."""
     username = username.strip()
@@ -112,8 +148,9 @@ def register_user(username: str, password: str, role: str = 'client') -> tuple[b
 
     if not username or not password:
         return False, "Plotësoni username dhe fjalëkalimin."
-    if len(password) < 4:
-        return False, "Fjalëkalimi duhet të ketë të paktën 4 karaktere."
+    min_length = ADMIN_MIN_PASSWORD_LENGTH if role == 'admin' else 4
+    if len(password) < min_length:
+        return False, f"Fjalëkalimi duhet të ketë të paktën {min_length} karaktere."
 
     if database.get_user_by_username(username):
         return False, "Ky emër përdoruesi ekziston tashmë!"
@@ -171,6 +208,8 @@ def change_password_with_current(identifier: str, old_password: str, new_passwor
 
     new_hash = hash_password(new_password)
     database.update_user_password(user['id'], new_hash)
+    # Pas ndryshimit të fjalëkalimit, të gjitha kyçjet e vjetra bëhen të pavlefshme
+    database.delete_user_sessions(user['id'])
     return True, "Fjalëkalimi u ndryshua me sukses! Tani mund të kyçeni me fjalëkalimin e ri."
 
 def request_password_reset_code(identifier: str) -> tuple[bool, str, str, str]:
@@ -213,4 +252,9 @@ def confirm_password_reset_code(identifier: str, code: str, new_password: str, c
         return False, "Fjalëkalimet e reja nuk përputhen!"
 
     new_hash = hash_password(new_password)
-    return database.reset_password_with_code(identifier, code, new_hash)
+    ok, msg = database.reset_password_with_code(identifier, code, new_hash)
+    if ok:
+        user = database.get_user_by_identifier(identifier)
+        if user:
+            database.delete_user_sessions(user['id'])
+    return ok, msg

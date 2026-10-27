@@ -289,20 +289,22 @@ if "pending_verification_code_test" not in st.session_state:
 
 # Auto-login për përdoruesit me sesion të ruajtur
 if not st.session_state.authenticated:
+    # Rikthimi i kyçjes pas F5 bëhet vetëm me token sesioni të vlefshëm.
+    # (Më parë mjaftonte ?user=emri, që lejonte këdo të hynte pa fjalëkalim.)
     if "user" in st.query_params:
-        saved_username = st.query_params["user"]
-        user_data = database.get_user_by_identifier(saved_username)
-        if user_data:
-            st.session_state.authenticated = True
-            st.session_state.current_user = user_data
-        else:
-            st.query_params.clear()
+        del st.query_params["user"]  # pastrojmë adresat e vjetra të pasigurta
+    session_user = auth.resume_session(st.query_params.get("session"))
+    if session_user:
+        st.session_state.authenticated = True
+        st.session_state.current_user = session_user
+    elif "session" in st.query_params:
+        del st.query_params["session"]
 
 # ==========================================
 # 🛠️ FUNKSIONET E BAZËS SË TË DHËNAVE
 # ==========================================
 def fetch_product_by_id(pid):
-    conn = sqlite3.connect('korea_beauty.db')
+    conn = database.get_connection()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM products WHERE id = ?', (pid,))
@@ -311,7 +313,7 @@ def fetch_product_by_id(pid):
     return dict(row) if row else None
 
 def save_updated_product(pid, name, brand, category, skin_type, price, description, eu_cert, is_orig, img_path):
-    conn = sqlite3.connect('korea_beauty.db')
+    conn = database.get_connection()
     cursor = conn.cursor()
     cursor.execute('''
         UPDATE products 
@@ -1700,6 +1702,7 @@ def render_client_app():
                 st.session_state.selected_product_id = None
                 st.session_state.editing_product_id = None
                 st.session_state.current_page = "shop"
+                auth.end_session(st.query_params.get("session"))
                 st.query_params.clear()
                 st.rerun()
 
@@ -1741,6 +1744,7 @@ def render_client_app():
                     st.session_state.current_user = None
                     st.session_state.selected_product_id = None
                     st.session_state.current_page = "shop"
+                    auth.end_session(st.query_params.get("session"))
                     st.query_params.clear()
                     st.rerun()
         else:
@@ -1772,7 +1776,7 @@ def render_client_app():
                                     st.session_state.current_user = u
                                     st.session_state.pending_verification_email = None
                                     st.session_state.pending_verification_code_test = None
-                                    st.query_params["user"] = u['username']
+                                    st.query_params["session"] = auth.start_session(u)
                                     st.success("🎉 Llogaria u aktivizua me sukses! Mirësevini në dyqan.")
                                     st.rerun()
                                 else:
@@ -1812,7 +1816,7 @@ def render_client_app():
                                 if succ:
                                     st.session_state.authenticated = True
                                     st.session_state.current_user = res
-                                    st.query_params["user"] = res['username']
+                                    st.query_params["session"] = auth.start_session(res)
                                     st.rerun()
                                 else:
                                     if isinstance(res, str) and res.startswith("UNVERIFIED:"):

@@ -7,17 +7,29 @@ from dotenv import load_dotenv
 # Ngarko të dhënat nga skedari .env
 load_dotenv(override=True)
 
+def _get_secret(name: str, default: str = "") -> str:
+    """Lexon një vlerë nga .env / variablat e mjedisit, ose nga st.secrets në Streamlit Cloud.
+    Fjalëkalimet nuk shkruhen KURRË direkt në kod, sepse kodi ngarkohet në GitHub."""
+    value = os.getenv(name, "")
+    if not value:
+        try:
+            import streamlit as st
+            value = st.secrets.get(name, "")
+        except Exception:
+            # Nuk ka secrets.toml (p.sh. në kompjuterin lokal) — përdorim vlerën e paracaktuar
+            value = ""
+    return str(value or default).strip()
+
+
 def get_smtp_config():
     """Rikthen konfigurimin aktual të SMTP nga variablat e mjedisit ose secrets."""
     load_dotenv(override=True)
-    user = os.getenv("SMTP_USER", "").strip() or "leart.demaku2006@gmail.com"
-    password = os.getenv("SMTP_PASSWORD", "").strip() or "lbmp fusa okut hgfi"
     return {
-        "server": os.getenv("SMTP_SERVER", "smtp.gmail.com").strip(),
-        "port": int(os.getenv("SMTP_PORT", "587")),
-        "user": user,
-        "password": password,
-        "from_name": os.getenv("SMTP_FROM_NAME", "Korea Pure Beauty").strip()
+        "server": _get_secret("SMTP_SERVER", "smtp.gmail.com"),
+        "port": int(_get_secret("SMTP_PORT", "587")),
+        "user": _get_secret("SMTP_USER"),
+        "password": _get_secret("SMTP_PASSWORD"),
+        "from_name": _get_secret("SMTP_FROM_NAME", "Korea Pure Beauty"),
     }
 
 def is_smtp_configured() -> bool:

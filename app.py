@@ -289,20 +289,22 @@ if "animated_item" not in st.session_state:
 # 🔑 AUTO-LOGIN PAS ÇDO REFRESH (F5)
 # ==========================================
 if not st.session_state.authenticated:
+    # Rikthimi i kyçjes pas F5 bëhet vetëm me token sesioni të vlefshëm.
+    # (Më parë mjaftonte ?user=emri, që lejonte këdo të hynte si admin pa fjalëkalim.)
     if "user" in st.query_params:
-        saved_username = st.query_params["user"]
-        user_data = database.get_user_by_identifier(saved_username)
-        if user_data and user_data.get('role') == 'admin':
-            st.session_state.authenticated = True
-            st.session_state.current_user = user_data
-        else:
-            st.query_params.clear()
+        del st.query_params["user"]  # pastrojmë adresat e vjetra të pasigurta
+    session_user = auth.resume_session(st.query_params.get("session"))
+    if session_user and session_user.get('role') == 'admin':
+        st.session_state.authenticated = True
+        st.session_state.current_user = session_user
+    elif "session" in st.query_params:
+        del st.query_params["session"]
 
 # ==========================================
 # 🛠️ FUNKSIONET E BAZËS SË TË DHËNAVE
 # ==========================================
 def fetch_product_by_id(pid):
-    conn = sqlite3.connect('korea_beauty.db')
+    conn = database.get_connection()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM products WHERE id = ?', (pid,))
@@ -311,7 +313,7 @@ def fetch_product_by_id(pid):
     return dict(row) if row else None
 
 def save_updated_product(pid, name, brand, category, skin_type, price, description, eu_cert, is_orig, img_path):
-    conn = sqlite3.connect('korea_beauty.db')
+    conn = database.get_connection()
     cursor = conn.cursor()
     cursor.execute('''
         UPDATE products 
@@ -1241,11 +1243,14 @@ def render_auth_page():
             if st.button("Hyr Tani", use_container_width=True, type="primary"):
                 if u and p:
                     success, res = auth.login_user(u, p)
-                    if success:
+                    if success and res.get('role') != 'admin':
+                        # Paneli i adminit pranon vetëm administratorë
+                        st.error("⛔ Ky panel është vetëm për administratorët. Klientët kyçen te dyqani.")
+                    elif success:
                         st.session_state.authenticated = True
                         st.session_state.current_user = res
                         st.session_state.current_page = "shop"
-                        st.query_params["user"] = res['username']
+                        st.query_params["session"] = auth.start_session(res)
                         st.success("Mirësevini!")
                         st.rerun()
                     else:
@@ -1254,23 +1259,13 @@ def render_auth_page():
                     st.warning("Plotësoni fushat.")
 
         with tab_register:
-            st.subheader("Krijo Llogari Administratori")
-            nu = st.text_input("Username i ri *", key="r_user", placeholder="p.sh. emri_admin")
-            np = st.text_input("Fjalëkalimi i ri *", type="password", key="r_pass", placeholder="Të paktën 4 karaktere")
-            np_conf = st.text_input("Konfirmo Fjalëkalimin *", type="password", key="r_pass_conf", placeholder="Rishkruani fjalëkalimin")
-
-            if st.button("👑 Regjistrohu si Administrator", use_container_width=True, type="primary"):
-                if nu and np:
-                    if np != np_conf:
-                        st.error("Fjalëkalimet nuk përputhen!")
-                    else:
-                        success, msg = auth.register_user(nu, np, role='admin')
-                        if success:
-                            st.success("🎉 " + msg + " 👉 Shkoni te 'Kyçu' për të hyrë si Administrator.")
-                        else:
-                            st.error(msg)
-                else:
-                    st.warning("Plotësoni të gjitha fushat.")
+            st.subheader("Llogaritë e Administratorit")
+            # Regjistrimi publik i administratorëve u çaktivizua për siguri:
+            # kushdo që hapte këtë faqe mund të bëhej admin.
+            st.info(
+                "🔒 Për siguri, llogaritë e reja të administratorit krijohen vetëm nga "
+                "kompjuteri i dyqanit, me komandën:\n\n`python create_admin.py`"
+            )
 
         with tab_reset:
             st.subheader("🔄 Ndërro Fjalëkalimin")
@@ -1922,6 +1917,7 @@ def render_main_app():
             st.session_state.selected_product_id = None
             st.session_state.editing_product_id = None
             st.session_state.current_page = "shop"
+            auth.end_session(st.query_params.get("session"))
             st.query_params.clear()
             st.rerun()
 

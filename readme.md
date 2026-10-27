@@ -89,7 +89,7 @@ The project was executed through nine comprehensive engineering phases:
 ### Phase 2: Authentication & Security Pipeline
 - **Password Security**: Uses salted SHA-256 (`hashlib.pbkdf2_hmac` / `hashlib.sha256`) with distinct hexadecimal salts per user.
 - **Email OTP Verification**: Integrated a 6-digit numeric verification code workflow for new client registrations.
-- **Session Continuity**: Uses Streamlit query parameter synchronization to persist sessions safely across page refreshes.
+- **Session Continuity**: After login the URL carries a random 256-bit session token (`?session=…`). Only its SHA-256 hash is stored in the `sessions` table; tokens expire after 7 days and are revoked on logout or password change.
 
 ### Phase 3: Customer Storefront (`client_app.py`)
 - **Faceted Search & Filtering**: Multi-parameter querying allows users to filter products simultaneously by keyword, category, and specific skin types (Dry, Oily, Sensitive, Acne-prone, Combination).
@@ -158,7 +158,14 @@ korea_pure_beauty/
 ├── client_app.py              # Customer-facing storefront and checkout (Local / Port 8502)
 ├── app.py                     # Administrative dashboard & inventory management (Port 8501)
 ├── database.py                # Database initialization, queries, multi-token search, and migrations
-├── auth.py                    # Password hashing, user authentication, and OTP logic
+├── auth.py                    # Password hashing, user authentication, sessions, and OTP logic
+├── theme.py                   # Theme engine: loads CSS files from styles/ into Streamlit
+├── theme_preview.py           # Design-system preview page (Port 8503)
+├── create_admin.py            # The only way to create an admin account (terminal)
+│
+├── styles/
+│   └── main.css               # Design tokens: palette, typography, buttons, badges, cards
+├── tests/                     # Automated tests (python -m unittest discover tests)
 ├── email_service.py           # SMTP mailer, order dispatch alerts, and HTML email templates
 │
 ├── assets/                    # Optimized brand identity assets
@@ -169,7 +176,7 @@ korea_pure_beauty/
 │   └── app_icon.ico           # Windows application desktop icon
 │
 ├── uploads/                   # Local storage for uploaded product images
-├── korea_beauty.db            # SQLite database file (gitignored)
+├── korea_beauty.db            # SQLite database file (currently committed, see Security Notes)
 ├── .env                       # Secret environment variables (gitignored)
 ├── .env.example               # Template for environment variables
 ├── .gitignore                 # Exclusion rules for secrets, cache, and db files
@@ -250,12 +257,31 @@ python -m streamlit run app.py --server.port 8501
 ```
 Or double-click **`Hap_Admin.bat`**.
 
+### Creating an Admin Account
+Admin accounts can no longer be created from the web interface. Run this on the store computer:
+```bash
+python create_admin.py
+```
+
+### Running the Tests
+```bash
+python -m unittest discover tests
+```
+
+### Design System Preview
+```bash
+python -m streamlit run theme_preview.py --server.port 8503
+```
+
 ---
 
 ## Security Notes
 - Secret configuration files (`.env`, `.streamlit/secrets.toml`) are strictly excluded from version control via `.gitignore`.
-- Database files (`korea_beauty.db`, `*.sqlite`) and customer uploads (`uploads/*`) are excluded from public commits to safeguard production data.
-- Passwords are never stored in plain text; all authentication runs through salted PBKDF2 hashing routines.
+- `korea_beauty.db` is currently committed so the cloud deployment starts with the product catalog. It contains user emails and bcrypt password hashes, so it should be moved out of the public repository once the cloud app has its own persistent database.
+- Passwords are never stored in plain text; they are hashed with bcrypt (salted).
+- Sessions use random tokens stored only as SHA-256 hashes; the old `?user=<name>` auto-login (which allowed login without a password) has been removed.
+- Admin self-registration from the web panel is disabled; admins are created only with `create_admin.py` and need at least 8 characters in their password.
+- The admin panel rejects non-admin accounts at login.
 
 ---
 
