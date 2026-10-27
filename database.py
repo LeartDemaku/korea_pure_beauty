@@ -1,14 +1,91 @@
 # database.py
+import os
 import sqlite3
 import json
-from typing import Optional, List, Dict
+from contextlib import contextmanager
+from typing import Optional, List, Dict, Any
 
-DATABASE_PATH = 'korea_beauty.db'
+# Rruga absolute: baza gjendet gjithmonë pranë këtij skedari,
+# pavarësisht nga cila dosje niset aplikacioni.
+DATABASE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'korea_beauty.db')
+
+# ==========================================
+# KONSTANTET E SISTEMIT
+# ==========================================
+
+# Rrjedha e statuseve të porosisë (Faza 5 – Admin)
+ORDER_STATUSES = [
+    'E Re (Në Pritje)',
+    'Në Përpunim',
+    'Dërguar me Postë',
+    'E Përfunduar / Dorëzuar',
+    'E Anuluar',
+]
+
+# Statuset e mesazheve të kontaktit
+MESSAGE_STATUSES = ['I Palexuar', 'I Përgjigjur', 'I Arkivuar']
+
+# Pragu i stokut kritik (nën këtë numër shfaqet paralajmërim në Admin)
+LOW_STOCK_THRESHOLD = 3
+
+# Vlerat fillestare të cilësimeve të dyqanit.
+# Futen vetëm nëse çelësi nuk ekziston, kështu që ndryshimet e adminit nuk humbin.
+DEFAULT_SETTINGS = {
+    'announcement_text': 'Transport falas në Kosovë për porosi mbi 30€',
+    'whatsapp_number': '',
+    'shipping_fee': '2.00',
+    'free_shipping_threshold': '30.00',
+}
+
+# Kolonat e reja që shtohen në tabelat ekzistuese pa humbur të dhëna.
+# Formati: (emri_kolonës, definicioni SQL)
+_PRODUCT_NEW_COLUMNS = [
+    ('old_price', 'REAL'),
+    ('stock_qty', 'INTEGER DEFAULT 0'),
+    ('ingredients', "TEXT DEFAULT ''"),
+    ('how_to_use', "TEXT DEFAULT ''"),
+    ('is_bestseller', 'INTEGER DEFAULT 0'),
+]
+_ORDER_NEW_COLUMNS = [
+    ('tracking_number', "TEXT DEFAULT ''"),
+    ('admin_notes', "TEXT DEFAULT ''"),
+    ('payment_method', "TEXT DEFAULT 'Para në dorë'"),
+    ('customer_notes', "TEXT DEFAULT ''"),
+    ('buyer_email', "TEXT DEFAULT ''"),
+]
+
+# Fushat e produktit që lejohen të ndryshohen nga update_product_fields().
+# Lista e bardhë na mbron nga emrat e kolonave të panjohura në SQL.
+_EDITABLE_PRODUCT_FIELDS = {
+    'name', 'brand', 'category', 'skin_type', 'price', 'old_price', 'description',
+    'eu_certified', 'is_original', 'image_url', 'stock_qty', 'ingredients',
+    'how_to_use', 'is_bestseller',
+}
 
 def get_connection():
     conn = sqlite3.connect(DATABASE_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+@contextmanager
+def _db():
+    """Hap lidhjen, bën commit nëse gjithçka shkoi mirë, dhe e mbyll gjithmonë."""
+    conn = get_connection()
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _add_missing_columns(cursor, table: str, columns: list) -> None:
+    """Migrim i sigurt: shton vetëm kolonat që mungojnë (PRAGMA table_info)."""
+    cursor.execute(f"PRAGMA table_info({table})")
+    existing = {row[1] for row in cursor.fetchall()}
+    for col_name, col_def in columns:
+        if col_name not in existing:
+            cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_def}")
 
 def init_database():
     conn = get_connection()
@@ -70,6 +147,46 @@ def init_database():
             items_json TEXT NOT NULL,
             total_price REAL NOT NULL,
             status TEXT DEFAULT 'E Re (Në Pritje)',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # --- Faza 1: zgjerimi i tabelave ekzistuese ---
+    _add_missing_columns(cursor, 'products', _PRODUCT_NEW_COLUMNS)
+    _add_missing_columns(cursor, 'orders', _ORDER_NEW_COLUMNS)
+
+    # Tabela e re: mesazhet nga faqja e Kontaktit
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT DEFAULT '',
+            phone TEXT DEFAULT '',
+            message TEXT NOT NULL,
+            status TEXT DEFAULT 'I Palexuar',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Tabela e re: cilësimet e dyqanit (çelës -> vlerë)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS store_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL DEFAULT ''
+        )
+    ''')
+    cursor.executemany(
+        'INSERT OR IGNORE INTO store_settings (key, value) VALUES (?, ?)',
+        list(DEFAULT_SETTINGS.items())
+    )
+
+    # Tabela e re: sesionet e kyçjes (zëvendëson ?user=emri, i cili ishte i pasigurt).
+    # Ruajmë vetëm hash-in e token-it, kurrë vetë token-in.
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS sessions (
+            token_hash TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            expires_at TIMESTAMP NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -225,17 +342,64 @@ def reset_password_with_code(identifier: str, code: str, new_password_hash: str)
     finally:
         conn.close()
 
+def count_admins() -> int:
+    with _db() as conn:
+        return conn.execute("SELECT COUNT(*) FROM users WHERE role = 'admin'").fetchone()[0]
+
+
+# ===== SESSIONS (kyçja e sigurt pas rifreskimit të faqes) =====
+def create_session(user_id: int, token_hash: str, valid_days: int) -> None:
+    with _db() as conn:
+        # Pastrojmë sesionet e skaduara sa herë krijohet një i ri
+        conn.execute("DELETE FROM sessions WHERE expires_at <= datetime('now')")
+        conn.execute(
+            "INSERT INTO sessions (token_hash, user_id, expires_at) "
+            "VALUES (?, ?, datetime('now', ?))",
+            (token_hash, user_id, f'+{int(valid_days)} days')
+        )
+
+
+def get_user_by_session(token_hash: str) -> Optional[Dict]:
+    """Kthen përdoruesin vetëm nëse sesioni ekziston dhe nuk ka skaduar."""
+    with _db() as conn:
+        row = conn.execute(
+            "SELECT users.* FROM sessions JOIN users ON users.id = sessions.user_id "
+            "WHERE sessions.token_hash = ? AND sessions.expires_at > datetime('now')",
+            (token_hash,)
+        ).fetchone()
+        return dict(row) if row else None
+
+
+def delete_session(token_hash: str) -> None:
+    with _db() as conn:
+        conn.execute("DELETE FROM sessions WHERE token_hash = ?", (token_hash,))
+
+
+def delete_user_sessions(user_id: int) -> None:
+    """Del nga të gjitha pajisjet (p.sh. pas ndryshimit të fjalëkalimit)."""
+    with _db() as conn:
+        conn.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+
+
 # ===== PRODUCTS =====
 def create_product(name: str, brand: str, category: str, skin_type: str,
                    price: float, description: str = '', eu_certified: bool = True,
-                   is_original: bool = True, image_url: str = '') -> int:
+                   is_original: bool = True, image_url: str = '',
+                   old_price: Optional[float] = None, stock_qty: int = 0,
+                   ingredients: str = '', how_to_use: str = '',
+                   is_bestseller: bool = False) -> int:
+    # Fushat e reja kanë vlera të paracaktuara, ndaj thirrjet e vjetra
+    # në app.py dhe client_app.py vazhdojnë të funksionojnë pa ndryshim.
     conn = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute('''
-            INSERT INTO products (name, brand, category, skin_type, price, description, eu_certified, is_original, image_url)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (name, brand, category, skin_type, price, description, eu_certified, is_original, image_url))
+            INSERT INTO products (name, brand, category, skin_type, price, description,
+                                  eu_certified, is_original, image_url,
+                                  old_price, stock_qty, ingredients, how_to_use, is_bestseller)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (name, brand, category, skin_type, price, description, eu_certified, is_original, image_url,
+              old_price, max(0, int(stock_qty)), ingredients, how_to_use, int(bool(is_bestseller))))
         conn.commit()
         return cursor.lastrowid
     finally:
@@ -364,5 +528,136 @@ def delete_order(order_id: int) -> bool:
     finally:
         conn.close()
 
+# ===== PRODUCTS: FAZA 1 (stoku, zbritjet, bestsellers) =====
+def update_product_fields(product_id: int, **fields: Any) -> bool:
+    """Përditëson vetëm fushat e dhëna, p.sh. update_product_fields(5, price=16.9, stock_qty=12)."""
+    unknown = set(fields) - _EDITABLE_PRODUCT_FIELDS
+    if unknown:
+        raise ValueError(f"Fusha të panjohura për produktin: {', '.join(sorted(unknown))}")
+    if not fields:
+        return False
+    # Emrat e kolonave vijnë nga lista e bardhë; vlerat kalojnë si parametra (?)
+    set_sql = ', '.join(f"{col} = ?" for col in fields)
+    with _db() as conn:
+        cur = conn.execute(f"UPDATE products SET {set_sql} WHERE id = ?", (*fields.values(), product_id))
+        return cur.rowcount > 0
+
+
+def set_product_stock(product_id: int, stock_qty: int) -> bool:
+    return update_product_fields(product_id, stock_qty=max(0, int(stock_qty)))
+
+
+def decrement_stock(product_id: int, quantity: int) -> bool:
+    """Ul stokun pas një blerjeje. Kthen False nëse nuk ka stok të mjaftueshëm."""
+    if quantity <= 0:
+        raise ValueError("Sasia duhet të jetë më e madhe se 0.")
+    with _db() as conn:
+        # Kushti 'stock_qty >= ?' bën që stoku të mos bjerë kurrë nën zero,
+        # edhe nëse dy klientë blejnë të njëjtin produkt në të njëjtën kohë.
+        cur = conn.execute(
+            "UPDATE products SET stock_qty = stock_qty - ? WHERE id = ? AND stock_qty >= ?",
+            (quantity, product_id, quantity)
+        )
+        return cur.rowcount > 0
+
+
+def get_bestsellers(limit: int = 8) -> List[Dict]:
+    with _db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM products WHERE is_bestseller = 1 ORDER BY created_at DESC LIMIT ?", (limit,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_low_stock_products(threshold: int = LOW_STOCK_THRESHOLD) -> List[Dict]:
+    with _db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM products WHERE stock_qty < ? ORDER BY stock_qty ASC, name ASC", (threshold,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def discount_percent(price: float, old_price: Optional[float]) -> int:
+    """Llogarit përqindjen e zbritjes për badge-in (p.sh. -15%). Kthen 0 nëse s'ka zbritje."""
+    if not old_price or old_price <= price or old_price <= 0:
+        return 0
+    return round((old_price - price) / old_price * 100)
+
+
+# ===== ORDERS: FAZA 1 (tracking, shënime) =====
+def update_order_admin_fields(order_id: int, tracking_number: Optional[str] = None,
+                              admin_notes: Optional[str] = None) -> bool:
+    updates = {}
+    if tracking_number is not None:
+        updates['tracking_number'] = tracking_number.strip()
+    if admin_notes is not None:
+        updates['admin_notes'] = admin_notes.strip()
+    if not updates:
+        return False
+    set_sql = ', '.join(f"{col} = ?" for col in updates)
+    with _db() as conn:
+        cur = conn.execute(f"UPDATE orders SET {set_sql} WHERE id = ?", (*updates.values(), order_id))
+        return cur.rowcount > 0
+
+
+# ===== MESSAGES (Inbox i Kontaktit) =====
+def create_message(name: str, message: str, email: str = '', phone: str = '') -> int:
+    name, message = name.strip(), message.strip()
+    if not name or not message:
+        raise ValueError("Emri dhe mesazhi janë të detyrueshëm.")
+    with _db() as conn:
+        cur = conn.execute(
+            "INSERT INTO messages (name, email, phone, message) VALUES (?, ?, ?, ?)",
+            (name, email.strip().lower(), phone.strip(), message)
+        )
+        return cur.lastrowid
+
+
+def get_all_messages(status: Optional[str] = None) -> List[Dict]:
+    with _db() as conn:
+        if status:
+            rows = conn.execute(
+                "SELECT * FROM messages WHERE status = ? ORDER BY created_at DESC, id DESC", (status,)
+            ).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM messages ORDER BY created_at DESC, id DESC").fetchall()
+        return [dict(r) for r in rows]
+
+
+def update_message_status(message_id: int, status: str) -> bool:
+    if status not in MESSAGE_STATUSES:
+        raise ValueError(f"Status i pavlefshëm: {status}")
+    with _db() as conn:
+        cur = conn.execute("UPDATE messages SET status = ? WHERE id = ?", (status, message_id))
+        return cur.rowcount > 0
+
+
+def count_unread_messages() -> int:
+    with _db() as conn:
+        return conn.execute("SELECT COUNT(*) FROM messages WHERE status = 'I Palexuar'").fetchone()[0]
+
+
+# ===== STORE SETTINGS =====
+def get_setting(key: str, default: str = '') -> str:
+    with _db() as conn:
+        row = conn.execute("SELECT value FROM store_settings WHERE key = ?", (key,)).fetchone()
+        return row['value'] if row else default
+
+
+def get_all_settings() -> Dict[str, str]:
+    with _db() as conn:
+        rows = conn.execute("SELECT key, value FROM store_settings").fetchall()
+        return {r['key']: r['value'] for r in rows}
+
+
+def set_setting(key: str, value: str) -> None:
+    with _db() as conn:
+        conn.execute(
+            "INSERT INTO store_settings (key, value) VALUES (?, ?) "
+            "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+            (key, str(value).strip())
+        )
+
+
 if __name__ == '__main__':
-    init_database()
+    init_database()

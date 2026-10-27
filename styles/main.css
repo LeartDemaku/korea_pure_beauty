@@ -1,0 +1,316 @@
+/* =====================================================================
+   KOREA PURE BEAUTY — main.css
+   Themeli i sistemit të dizajnit: ngjyrat, fontet, reset-i dhe
+   klasat bazë që përdoren nga të gjitha faqet (Faza 1).
+   Stilet e seksioneve (hero.css, ritual.css, shop.css, admin.css)
+   vijnë në fazat e ardhshme dhe mbështeten te variablat e mëposhtme.
+   ===================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Alex+Brush&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+/* ---------------------------------------------------------------------
+   1. VARIABLAT (Design Tokens)
+   Ndrysho një ngjyrë këtu dhe ndryshon kudo në dyqan.
+   --------------------------------------------------------------------- */
+:root {
+    /* Paleta */
+    --kpb-nude: #FAF6F2;          /* Porcelain Nude: sfondi kryesor */
+    --kpb-terracotta: #AF6A4E;    /* Butonat CTA, çmimet, badges aktive */
+    --kpb-terracotta-dark: #96563C;
+    --kpb-espresso: #261B15;      /* Seksioni i Ritualit, footer, tekst me kontrast */
+    --kpb-gold: #D8B494;          /* Numrat 01–04, linjat e holla */
+    --kpb-sand: #EADED5;          /* Kornizat e kartave, ndarësit */
+    --kpb-white: #FFFFFF;         /* Kartat, modalet, input-et */
+    --kpb-emerald: #2ECC71;       /* Admin: në stok / e përfunduar */
+    --kpb-amber: #F39C12;         /* Admin: stok kritik / në pritje */
+    --kpb-danger: #C0392B;        /* Admin: pa stok / e anuluar */
+
+    /* Teksti */
+    --kpb-text: var(--kpb-espresso);
+    --kpb-text-muted: #6E5D53;    /* Kontrast 5.9:1 mbi nude (WCAG AA) */
+    --kpb-text-on-dark: #F3EBE4;
+
+    /* Tipografia */
+    --kpb-font-display: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+    --kpb-font-serif: 'Playfair Display', Georgia, serif;
+    --kpb-font-script: 'Alex Brush', 'Playfair Display', cursive;
+    --kpb-font-body: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+
+    /* Madhësitë e tekstit: clamp(min, ideale, max) përshtatet me ekranin */
+    --kpb-fs-display: clamp(2.6rem, 5.5vw, 4.6rem);
+    --kpb-fs-h2: clamp(2rem, 3.8vw, 3.1rem);
+    --kpb-fs-h3: clamp(1.35rem, 2.2vw, 1.75rem);
+    --kpb-fs-body: 1rem;
+    --kpb-fs-small: 0.875rem;
+    --kpb-fs-overline: 0.75rem;
+
+    /* Hapësirat, rrezet, hijet */
+    --kpb-space-1: 0.5rem;
+    --kpb-space-2: 1rem;
+    --kpb-space-3: 1.5rem;
+    --kpb-space-4: 2.5rem;
+    --kpb-space-5: 4rem;
+    --kpb-radius-sm: 8px;
+    --kpb-radius-md: 16px;
+    --kpb-radius-pill: 999px;
+    --kpb-shadow-soft: 0 10px 30px rgba(38, 27, 21, 0.06);
+    --kpb-shadow-lift: 0 18px 40px rgba(38, 27, 21, 0.12);
+    --kpb-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --kpb-touch-min: 44px;        /* Madhësia minimale e prekjes në celular */
+}
+
+/* ---------------------------------------------------------------------
+   2. RESET & BAZA E STREAMLIT
+   Streamlit ka stilet e veta; këto rregulla vendosin identitetin tonë.
+   --------------------------------------------------------------------- */
+.stApp {
+    color-scheme: light;
+    background: var(--kpb-nude) !important;
+    color: var(--kpb-text);
+    font-family: var(--kpb-font-body);
+    -webkit-font-smoothing: antialiased;
+}
+.stApp p, .stApp li, .stApp label, .stApp span, .stApp input, .stApp textarea {
+    font-family: var(--kpb-font-body);
+}
+.stApp h1, .stApp h2, .stApp h3 {
+    font-family: var(--kpb-font-display) !important;
+    color: var(--kpb-text);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}
+header[data-testid="stHeader"] { background: transparent !important; }
+.stApp a { color: var(--kpb-terracotta); }
+.stApp a:hover { color: var(--kpb-terracotta-dark); }
+::selection { background: var(--kpb-gold); color: var(--kpb-espresso); }
+
+/* Fokus i dukshëm për përdoruesit e tastierës (aksesueshmëri) */
+.stApp :focus-visible {
+    outline: 2px solid var(--kpb-terracotta);
+    outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------------------
+   3. TIPOGRAFIA EDITORIALE
+   --------------------------------------------------------------------- */
+.kpb-overline {
+    font-family: var(--kpb-font-body);
+    font-size: var(--kpb-fs-overline);
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--kpb-terracotta);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.kpb-overline::before {           /* vija e hollë para tekstit: "— K-SECRET" */
+    content: "";
+    width: 2rem;
+    height: 1px;
+    background: currentColor;
+}
+.kpb-display {
+    font-family: var(--kpb-font-display);
+    font-size: var(--kpb-fs-display);
+    font-weight: 500;
+    line-height: 1.05;
+    letter-spacing: -0.015em;
+    color: var(--kpb-text);
+    margin: var(--kpb-space-2) 0;
+}
+.kpb-h2 {
+    font-family: var(--kpb-font-display);
+    font-size: var(--kpb-fs-h2);
+    font-weight: 500;
+    line-height: 1.1;
+    margin: 0 0 var(--kpb-space-2);
+}
+.kpb-accent {                     /* fjalët kyçe: "rrezatuese", "flet vetë" */
+    font-family: var(--kpb-font-serif);
+    font-style: italic;
+    font-weight: 400;
+    color: var(--kpb-terracotta);
+}
+.kpb-script {                     /* kalligrafi dekorative: "Beauty" */
+    font-family: var(--kpb-font-script);
+    font-weight: 400;
+    color: var(--kpb-terracotta);
+}
+.kpb-lead {
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: var(--kpb-text-muted);
+    max-width: 34rem;
+}
+.kpb-muted { color: var(--kpb-text-muted); }
+
+/* ---------------------------------------------------------------------
+   4. BUTONAT
+   .kpb-btn për linqe HTML; rregullat poshtë stilizojnë edhe st.button(type="primary")
+   --------------------------------------------------------------------- */
+.kpb-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: var(--kpb-touch-min);
+    padding: 0.85rem 2rem;
+    line-height: 1.2;
+    border-radius: var(--kpb-radius-pill);
+    background: var(--kpb-terracotta);
+    color: var(--kpb-white) !important;
+    font-family: var(--kpb-font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-decoration: none !important;
+    border: 1px solid var(--kpb-terracotta);
+    transition: background 0.3s var(--kpb-ease), transform 0.3s var(--kpb-ease), box-shadow 0.3s var(--kpb-ease);
+}
+.kpb-btn:hover {
+    background: var(--kpb-terracotta-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(175, 106, 78, 0.28);
+}
+.kpb-btn--ghost {
+    background: transparent;
+    color: var(--kpb-text) !important;
+    border-color: var(--kpb-text);
+}
+.kpb-btn--ghost:hover { background: var(--kpb-text); color: var(--kpb-nude) !important; }
+
+.kpb-link-arrow {                 /* "Rituali në 4 hapa →" */
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--kpb-text) !important;
+    text-decoration: none !important;
+    border-bottom: 1px solid var(--kpb-gold);
+    padding-bottom: 2px;
+    transition: color 0.25s, border-color 0.25s;
+}
+.kpb-link-arrow:hover { color: var(--kpb-terracotta) !important; border-color: var(--kpb-terracotta); }
+
+/* Butonat e Streamlit (dy selektorë: versionet e vjetra dhe të reja të Streamlit) */
+.stApp button[kind="primary"],
+.stApp [data-testid="stBaseButton-primary"] {
+    background: var(--kpb-terracotta) !important;
+    border: 1px solid var(--kpb-terracotta) !important;
+    color: var(--kpb-white) !important;
+    border-radius: var(--kpb-radius-pill) !important;
+    min-height: var(--kpb-touch-min);
+    font-weight: 600 !important;
+    letter-spacing: 0.08em;
+    transition: background 0.3s var(--kpb-ease), transform 0.3s var(--kpb-ease);
+}
+.stApp button[kind="primary"]:hover,
+.stApp [data-testid="stBaseButton-primary"]:hover {
+    background: var(--kpb-terracotta-dark) !important;
+    transform: translateY(-1px);
+}
+.stApp button[kind="secondary"],
+.stApp [data-testid="stBaseButton-secondary"] {
+    background: var(--kpb-white) !important;
+    border: 1px solid var(--kpb-sand) !important;
+    color: var(--kpb-text) !important;
+    border-radius: var(--kpb-radius-pill) !important;
+    min-height: var(--kpb-touch-min);
+}
+.stApp button[kind="secondary"]:hover,
+.stApp [data-testid="stBaseButton-secondary"]:hover {
+    border-color: var(--kpb-terracotta) !important;
+    color: var(--kpb-terracotta) !important;
+}
+
+/* ---------------------------------------------------------------------
+   5. BADGES, KARTA, NDARËS
+   --------------------------------------------------------------------- */
+.kpb-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: var(--kpb-radius-pill);
+    background: var(--kpb-white);
+    border: 1px solid var(--kpb-sand);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--kpb-text);
+}
+.kpb-badge__dot {                 /* pika "●" para "100% origjinale" */
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--kpb-terracotta);
+}
+.kpb-badge--accent { background: var(--kpb-terracotta); border-color: var(--kpb-terracotta); color: var(--kpb-white); }
+.kpb-badge--success { color: #1E8449; border-color: rgba(46, 204, 113, 0.45); background: rgba(46, 204, 113, 0.08); }
+.kpb-badge--warning { color: #B9770E; border-color: rgba(243, 156, 18, 0.45); background: rgba(243, 156, 18, 0.08); }
+.kpb-badge--danger  { color: var(--kpb-danger); border-color: rgba(192, 57, 43, 0.4); background: rgba(192, 57, 43, 0.06); }
+
+.kpb-card {
+    background: var(--kpb-white);
+    border: 1px solid var(--kpb-sand);
+    border-radius: var(--kpb-radius-md);
+    padding: var(--kpb-space-3);
+    box-shadow: var(--kpb-shadow-soft);
+    transition: transform 0.35s var(--kpb-ease), box-shadow 0.35s var(--kpb-ease);
+}
+.kpb-card:hover { transform: translateY(-4px); box-shadow: var(--kpb-shadow-lift); }
+
+.kpb-price { font-family: var(--kpb-font-serif); font-size: 1.25rem; color: var(--kpb-terracotta); }
+.kpb-price--old { font-size: 0.95rem; color: var(--kpb-text-muted); text-decoration: line-through; margin-left: 0.4rem; }
+
+.kpb-divider {
+    height: 1px;
+    border: 0;
+    background: linear-gradient(90deg, transparent, var(--kpb-gold), transparent);
+    margin: var(--kpb-space-4) 0;
+}
+
+/* ---------------------------------------------------------------------
+   6. SEKSIONI I ERRËT (bazë për Ritualin dhe Footer-in)
+   --------------------------------------------------------------------- */
+.kpb-section-dark {
+    background: var(--kpb-espresso);
+    color: var(--kpb-text-on-dark);
+    border-radius: var(--kpb-radius-md);
+    padding: var(--kpb-space-5) var(--kpb-space-4);
+    border-top: 1px solid var(--kpb-gold);
+}
+.kpb-section-dark .kpb-h2,
+.kpb-section-dark h2,
+.kpb-section-dark h3 { color: var(--kpb-text-on-dark) !important; }
+.kpb-section-dark .kpb-accent { color: var(--kpb-gold); }
+.kpb-section-dark .kpb-lead { color: rgba(243, 235, 228, 0.72); }
+
+.kpb-step-number {                /* numrat linearë 01–04 */
+    font-family: var(--kpb-font-display);
+    font-size: clamp(2.8rem, 5vw, 4rem);
+    font-weight: 400;
+    line-height: 1;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--kpb-gold);
+}
+
+/* ---------------------------------------------------------------------
+   7. LËVIZJA E REDUKTUAR
+   Respekton përdoruesit që kanë çaktivizuar animacionet në sistem.
+   --------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .stApp *, .stApp *::before, .stApp *::after {
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+    }
+}
+
+/* ---------------------------------------------------------------------
+   8. CELULARI
+   --------------------------------------------------------------------- */
+@media (max-width: 640px) {
+    .kpb-section-dark { padding: var(--kpb-space-4) var(--kpb-space-2); }
+    .kpb-btn { width: 100%; }
+}
