@@ -329,6 +329,144 @@ h1, h2, h3, h4 { font-family: var(--display); font-weight: 400; letter-spacing: 
 .footer__bottom button { text-decoration: underline; text-underline-offset: 4px; }
 .footer__bottom button:hover { color: var(--primary); }
 
+/* ---------- 7b. Seksionet e reja të ballinës dhe faqet ---------- */
+.section-head { max-width: 46rem; }
+.accent-script { font-size: 1.3em; line-height: .9; }
+.see-all { margin-top: 3.5rem; display: flex; justify-content: center; }
+
+/* Shiriti që lëviz */
+.marquee { overflow: hidden; border-block: 1px solid var(--border); background: var(--secondary); padding: 1.1rem 0; }
+.marquee__track { display: flex; width: max-content; animation: marquee 38s linear infinite; }
+.marquee:hover .marquee__track { animation-play-state: paused; }
+.marquee ul { display: flex; flex-shrink: 0; list-style: none; }
+.marquee li { display: flex; align-items: center; gap: .9rem; padding: 0 1.75rem; white-space: nowrap; font-size: .75rem; font-weight: 500; letter-spacing: .22em; text-transform: uppercase; color: var(--secondary-fg); }
+.marquee li svg { width: 1rem; height: 1rem; color: var(--primary); flex-shrink: 0; }
+@keyframes marquee { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .marquee__track { animation: none; } }
+
+/* Pse K-Beauty */
+.why { background: var(--card); }
+.pillars { margin-top: 3.5rem; display: grid; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 1rem; overflow: hidden; }
+@media (min-width: 640px) { .pillars { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .pillars { grid-template-columns: repeat(4, 1fr); } }
+.pillar { padding: 2.25rem 1.75rem 2.5rem; background: var(--card); transition: background .5s var(--ease); }
+.pillar:hover { background: #FFF6F1; }
+.pillar__n { font-family: var(--display); font-size: 3rem; line-height: 1; color: transparent; -webkit-text-stroke: 1px var(--primary); opacity: .8; }
+.pillar h3 { margin-top: 1.5rem; font-size: 1.5rem; }
+.pillar p { margin-top: .75rem; font-weight: 300; line-height: 1.7; color: var(--muted-fg); }
+
+/* Përbërësit */
+.ing-grid { margin-top: 3.5rem; display: grid; gap: 1.25rem; }
+@media (min-width: 640px) { .ing-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .ing-grid { grid-template-columns: repeat(3, 1fr); } }
+.ing { position: relative; padding: 2rem 1.75rem; border-radius: 1rem; border: 1px solid var(--border); background: linear-gradient(160deg, var(--card), #FBF1EC); overflow: hidden; transition: transform .5s var(--ease), box-shadow .5s var(--ease); }
+.ing::after { content: ""; position: absolute; right: -3rem; top: -3rem; width: 9rem; height: 9rem; border-radius: 999px; background: radial-gradient(circle, rgba(227, 169, 130, .35), transparent 70%); }
+.ing:hover { transform: translateY(-4px); box-shadow: 0 24px 48px -28px rgba(49, 34, 29, .4); }
+.ing__alias { font-family: var(--script); font-size: 1.6rem; line-height: 1; color: var(--primary); }
+.ing h3 { margin-top: .6rem; font-size: 1.6rem; }
+.ing > p:not(.ing__alias) { margin-top: .75rem; font-weight: 300; line-height: 1.7; color: var(--muted-fg); }
+.ing__found { position: relative; z-index: 1; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px dashed var(--border); display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; font-size: .8rem; color: var(--muted-fg); }
+.ing__found button { min-height: 32px; padding: .2rem .75rem; border-radius: 999px; border: 1px solid var(--border); background: var(--card); font-size: .8rem; color: var(--fg); transition: border-color .3s, color .3s; }
+.ing__found button:hover { border-color: var(--primary); color: var(--primary); }
+
+/* Vlerësimet */
+.reviews { background: var(--card); }
+.quotes { margin-top: 3.5rem; display: grid; gap: 1.25rem; }
+@media (min-width: 768px) { .quotes { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .quotes { grid-template-columns: repeat(3, 1fr); } }
+.quote { display: flex; flex-direction: column; padding: 2rem 1.75rem; border-radius: 1rem; border: 1px solid var(--border); background: var(--bg); }
+.quote__stars { letter-spacing: .2em; color: var(--rose); }
+.quote blockquote { margin-top: 1rem; flex: 1; font-family: var(--display); font-size: 1.15rem; line-height: 1.6; }
+.quote figcaption { margin-top: 1.5rem; font-size: .75rem; letter-spacing: .2em; text-transform: uppercase; color: var(--muted-fg); }
+
+/* Pyetjet e shpeshta */
+.faq__grid { display: grid; gap: 3rem; }
+@media (min-width: 1024px) { .faq__grid { grid-template-columns: 5fr 7fr; gap: 6rem; align-items: start; } }
+.faq__list { border-top: 1px solid var(--border); }
+.faq__item { border-bottom: 1px solid var(--border); }
+.faq__item summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; min-height: 64px; padding: 1.1rem 0; font-family: var(--display); font-size: 1.2rem; line-height: 1.35; transition: color .3s; }
+.faq__item summary::-webkit-details-marker { display: none; }
+.faq__item summary:hover { color: var(--primary); }
+.faq__icon { flex-shrink: 0; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 999px; border: 1px solid var(--border); transition: transform .4s var(--ease), background .3s, color .3s; }
+.faq__icon svg { width: 1rem; height: 1rem; }
+.faq__item[open] .faq__icon { transform: rotate(45deg); background: var(--primary); border-color: var(--primary); color: var(--primary-fg); }
+.faq__item p { padding: 0 3.5rem 1.5rem 0; font-weight: 300; line-height: 1.75; color: var(--muted-fg); }
+
+/* Koka e faqeve (Produktet / Rreth nesh) */
+.page-hero { position: relative; overflow: hidden; padding: 4.5rem 0 4rem; border-bottom: 1px solid var(--border); background: linear-gradient(180deg, #FFF8F4, var(--bg)); }
+@media (min-width: 1024px) { .page-hero { padding: 6.5rem 0 5.5rem; } }
+.page-hero__inner { position: relative; }
+.crumbs { display: flex; align-items: center; gap: .6rem; margin-bottom: 2rem; font-size: .75rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted-fg); }
+.crumbs a { transition: color .3s; }
+.crumbs a:hover { color: var(--primary); }
+.crumbs [aria-current] { color: var(--fg); }
+.page-title { margin-top: 1rem; max-width: 52rem; font-size: 2.75rem; line-height: 1.05; }
+@media (min-width: 640px) { .page-title { font-size: 4rem; } }
+@media (min-width: 1024px) { .page-title { font-size: 5rem; } }
+.page-lead { margin-top: 1.5rem; max-width: 40rem; font-size: 1.05rem; font-weight: 300; line-height: 1.75; color: var(--muted-fg); }
+.page-facts { margin-top: 2.25rem; display: flex; flex-wrap: wrap; gap: .6rem; list-style: none; }
+.page-facts li { display: inline-flex; align-items: center; gap: .5rem; padding: .5rem 1rem; border-radius: 999px; border: 1px solid var(--border); background: rgba(255, 253, 251, .8); font-size: .8rem; color: var(--secondary-fg); }
+.page-facts svg { width: .9rem; height: .9rem; color: var(--primary); }
+.section--tight { padding-top: 3rem; }
+
+/* Kërkimi dhe renditja */
+.toolbar { display: flex; flex-direction: column; gap: 1rem; }
+@media (min-width: 768px) { .toolbar { flex-direction: row; align-items: center; justify-content: space-between; } }
+.search { position: relative; display: flex; align-items: center; flex: 1; max-width: 34rem; }
+.search svg { position: absolute; left: 1.1rem; width: 1.1rem; height: 1.1rem; color: var(--muted-fg); pointer-events: none; }
+.search input { width: 100%; height: 3.25rem; padding: 0 1.25rem 0 3rem; border-radius: 999px; border: 1px solid var(--border); background: var(--card); font: inherit; font-size: 1rem; color: var(--fg); transition: border-color .3s, box-shadow .3s; }
+.search input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(186, 113, 79, .12); }
+.sort { display: flex; align-items: center; gap: .75rem; font-size: .75rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted-fg); }
+.sort select { height: 3.25rem; padding: 0 2.5rem 0 1.1rem; border-radius: 999px; border: 1px solid var(--border); background: var(--card) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2378645B' stroke-width='1.6'><path d='m6 9 6 6 6-6'/></svg>") no-repeat right 1rem center / 1rem; -webkit-appearance: none; appearance: none; font: inherit; font-size: .95rem; letter-spacing: 0; text-transform: none; color: var(--fg); cursor: pointer; }
+.sort select:focus { outline: none; border-color: var(--primary); }
+.toolbar__row { margin-top: 1.5rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: .75rem; }
+@media (min-width: 1024px) { .toolbar__row { flex-direction: row; align-items: center; justify-content: space-between; } }
+
+/* Banderola e kuizit */
+.banner { padding: 0 0 6rem; }
+.banner__inner { display: grid; gap: 2rem; align-items: center; padding: 3rem 2rem; border-radius: 1.5rem; background: var(--fg); color: var(--bg); position: relative; overflow: hidden; }
+.banner__inner::before { content: ""; position: absolute; right: -6rem; top: -6rem; width: 20rem; height: 20rem; border-radius: 999px; background: radial-gradient(circle, rgba(227, 169, 130, .35), transparent 70%); }
+@media (min-width: 900px) { .banner__inner { grid-template-columns: 1fr auto; padding: 4rem; } }
+.banner h2 { position: relative; margin-top: .75rem; font-size: 2rem; line-height: 1.1; }
+.banner h2 .font-script { font-size: 1.5em; color: var(--rose); }
+.banner p:not(.eyebrow) { position: relative; margin-top: 1rem; max-width: 36rem; font-weight: 300; line-height: 1.7; color: rgba(250, 246, 243, .75); }
+.banner .btn--pill { position: relative; background: var(--rose); color: var(--fg); }
+.banner .btn--pill:hover { background: var(--bg); }
+
+/* Faqja Rreth nesh */
+.mission { padding-top: 0; }
+.mission__grid { display: grid; gap: 1.25rem; }
+@media (min-width: 768px) { .mission__grid { grid-template-columns: 1fr 1fr; } }
+.mission__card { padding: 2.5rem 2rem; border-radius: 1.25rem; border: 1px solid var(--border); background: linear-gradient(160deg, var(--card), var(--secondary)); }
+.mission__card h3 { margin-top: 1rem; font-size: 1.85rem; line-height: 1.15; }
+.mission__card p:not(.eyebrow) { margin-top: 1rem; font-weight: 300; line-height: 1.75; color: var(--muted-fg); }
+.values-section { background: var(--card); }
+.values--4 { margin-top: 3.5rem; }
+@media (min-width: 1024px) { .values--4 { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 640px) and (max-width: 1023px) { .values--4 { grid-template-columns: repeat(2, 1fr); } }
+.value__icon { display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: 999px; background: var(--secondary); color: var(--primary); }
+.value__icon svg { width: 1.35rem; height: 1.35rem; }
+.value p { color: var(--muted-fg); font-weight: 300; }
+.process__list { margin-top: 3.5rem; list-style: none; display: grid; gap: 2.5rem; counter-reset: none; }
+@media (min-width: 768px) { .process__list { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1100px) { .process__list { grid-template-columns: repeat(4, 1fr); gap: 2rem; } }
+.process__step { position: relative; padding-top: 1.75rem; border-top: 1px solid var(--fg); }
+.process__n { font-family: var(--script); font-size: 2.5rem; line-height: 1; color: var(--primary); }
+.process__step h3 { margin-top: .75rem; font-size: 1.6rem; }
+.process__step p { margin-top: .6rem; font-weight: 300; line-height: 1.7; color: var(--muted-fg); }
+.promise { position: relative; overflow: hidden; padding: 6rem 0; background: var(--fg); color: var(--bg); text-align: center; }
+.promise::before { content: ""; position: absolute; left: 50%; top: 50%; width: 40rem; height: 40rem; transform: translate(-50%, -50%); border-radius: 999px; background: radial-gradient(circle, rgba(186, 113, 79, .3), transparent 65%); }
+.promise__inner { position: relative; max-width: 56rem; }
+.promise__script { font-family: var(--script); font-size: 3rem; line-height: 1; color: var(--rose); }
+.promise h2 { margin-top: 1.5rem; font-size: 1.9rem; line-height: 1.3; }
+@media (min-width: 768px) { .promise h2 { font-size: 2.6rem; } }
+.promise__list { margin-top: 2.5rem; display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem 2rem; list-style: none; font-size: .8rem; letter-spacing: .18em; text-transform: uppercase; color: rgba(250, 246, 243, .8); }
+.promise__list li { display: inline-flex; align-items: center; gap: .5rem; }
+.promise__list svg { width: 1rem; height: 1rem; color: var(--rose); }
+.cta-end__inner { text-align: center; display: flex; flex-direction: column; align-items: center; }
+.cta-end__inner .section-sub { margin-inline: auto; }
+.cta-end__btns { margin-top: 2rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; }
+
 /* ---------- 8. Dritaret (modal) ---------- */
 .overlay { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; background: rgba(49, 34, 29, .4); backdrop-filter: blur(4px); opacity: 0; pointer-events: none; transition: opacity .35s; }
 .overlay.is-open { opacity: 1; pointer-events: auto; }

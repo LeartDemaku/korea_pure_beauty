@@ -91,6 +91,18 @@ class StoreApiTestCase(unittest.TestCase):
         self.assertEqual(data["products"][0]["size"], "30 ml")
         self.assertEqual(data["featured_ids"], [self.pid])
 
+    def test_only_visible_testimonials_reach_the_page(self):
+        shown = database.create_testimonial("Arta", "Lëkura ime nuk ka qenë kurrë më e butë.", 4, "Prishtinë")
+        hidden = database.create_testimonial("Fshehur", "Nuk duhet të shfaqet.", 5)
+        database.set_testimonial_visibility(hidden, False)
+        data = store_api.build_store_data(lambda path, size, quality: "", None, {})
+        names = [t["name"] for t in data["testimonials"]]
+        self.assertIn("Arta", names)
+        self.assertNotIn("Fshehur", names)
+        arta = next(t for t in data["testimonials"] if t["name"] == "Arta")
+        self.assertEqual((arta["rating"], arta["city"]), (4, "Prishtinë"))
+        self.assertTrue(shown)
+
     def test_unknown_action(self):
         self.assertFalse(store_api.handle_event({"type": "drop_tables"}, {})["ok"])
 

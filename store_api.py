@@ -114,8 +114,29 @@ def build_store_data(image_uri: ImageUriFunction, user: Optional[dict], results:
         "ritual_skins": RITUAL_SKINS,
         "goal_keywords": {goal: list(words) for goal, words in catalog.GOAL_KEYWORDS.items()},
         "ritual_discount": 0.10,
+        "testimonials": _testimonials(),
         "year": date.today().year,
     }
+
+
+def _testimonials() -> list:
+    """Vetëm vlerësimet që admini i ka bërë të dukshme (asnjë vlerësim i shpikur)."""
+    try:
+        rows = database.get_visible_testimonials(6)
+    except Exception:  # tabela mungon në një databazë të vjetër: faqja shfaqet pa vlerësime
+        return []
+    result = []
+    for row in rows:
+        text = str(row.get("text") or "").strip()
+        if not text:
+            continue
+        try:
+            rating = min(5, max(1, int(row.get("rating") or 5)))
+        except (TypeError, ValueError):
+            rating = 5
+        result.append({"name": str(row.get("customer_name") or "Kliente")[:60],
+                       "city": str(row.get("city") or "")[:40], "text": text[:400], "rating": rating})
+    return result
 
 
 # ==========================================

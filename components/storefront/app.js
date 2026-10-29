@@ -30,6 +30,10 @@
     modalProduct: null,
     modalQty: 1,
     renderedKey: "",
+    route: "home",
+    search: "",
+    sort: "new",
+    sectionObserver: null,
   };
 
   // Thirr një veprim në Python dhe prit përgjigjen (Promise)
@@ -106,6 +110,9 @@
   function plural(n, one, many) { return n === 1 ? one : many; }
 
   const ICON = {
+    sparkle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.2 2.2M15.5 15.5l2.2 2.2M6.3 17.7l2.2-2.2M15.5 8.5l2.2-2.2"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+    eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>',
     bag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
     user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>',
     menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" aria-hidden="true"><line x1="4" x2="20" y1="7" y2="7"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="17" y2="17"/></svg>',
@@ -169,12 +176,34 @@
   }
 
   // ---------------------------------------------------------------
-  // 4. Ndërtimi i faqes
+  // 4. Faqet dhe navigimi (router me #)
+  //    #/            -> Ballina   (seksionet: #dyqani, #rituali, #kontakt ...)
+  //    #/produktet   -> faqja e produkteve
+  //    #/rreth-nesh  -> faqja "Rreth nesh"
   // ---------------------------------------------------------------
-  const NAV = [["dyqani", "Dyqani"], ["produktet", "Produktet"], ["rituali", "Rituali"], ["rreth-nesh", "Rreth nesh"], ["kontakt", "Kontakt"]];
+  const NAV = [
+    { key: "dyqani", label: "Dyqani", href: "#dyqani" },
+    { key: "produktet", label: "Produktet", href: "#/produktet" },
+    { key: "rituali", label: "Rituali", href: "#rituali" },
+    { key: "rreth-nesh", label: "Rreth nesh", href: "#/rreth-nesh" },
+    { key: "kontakt", label: "Kontakt", href: "#kontakt" },
+  ];
+  const PAGES = { "produktet": true, "rreth-nesh": true };
+  const HOME_SPY = ["dyqani", "rituali", "kontakt"];
+
+  function routeFromHash() {
+    const hash = decodeURIComponent((window.location.hash || "").replace(/^#/, ""));
+    if (hash.charAt(0) === "/") {
+      const page = hash.slice(1).split(/[?#]/)[0];
+      return { route: PAGES[page] ? page : "home", section: "" };
+    }
+    return { route: "home", section: hash };
+  }
 
   function renderPage() {
     const app = $("#app");
+    const start = routeFromHash();
+    state.route = start.route;
     app.innerHTML =
       headerHTML() +
       '<main id="main">' + mainHTML() + "</main>" +
@@ -188,6 +217,7 @@
     updateHeader();
     scroller().setAttribute("tabindex", "-1");
     scroller().focus({ preventScroll: true });
+    if (start.section) scrollToSection(start.section, false);
   }
 
   function renderMain() {
@@ -199,6 +229,43 @@
     renderGrid();
     observeReveal();
     observeSections();
+    updateActiveNav();
+  }
+
+  function onHashChange() {
+    const next = routeFromHash();
+    toggleMenu(false);
+    if (next.route !== state.route) {
+      // Butoni "Mbrapa" ose një lidhje: dritaret e hapura mbyllen para se të ndryshojë faqja
+      if ($("#overlay").classList.contains("is-open")) closeModal();
+      if (isDrawerOpen()) closeDrawer();
+      state.route = next.route;
+      state.search = "";
+      renderMain();
+      if (next.section) scrollToSection(next.section, false);
+      else scroller().scrollTo({ top: 0, behavior: "auto" });
+    } else if (next.section) {
+      scrollToSection(next.section, true);
+    } else {
+      scroller().scrollTo({ top: 0, behavior: "smooth" });
+    }
+    updateActiveNav();
+  }
+
+  function scrollToSection(id, smooth) {
+    requestAnimationFrame(function () {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "start" });
+    });
+  }
+
+  function updateActiveNav(sectionId) {
+    const active = state.route !== "home" ? state.route : (sectionId || "");
+    $all("[data-nav]").forEach(function (a) {
+      const on = a.dataset.nav === active;
+      a.classList.toggle("is-active", on);
+      if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
   }
 
   function headerHTML() {
@@ -207,10 +274,10 @@
     const announce = s.announcement
       ? '<div class="announce"><p><span>' + esc(s.announcement) + '</span><span class="dot opt" aria-hidden="true">·</span><span class="opt">Produkte origjinale koreane</span></p></div>'
       : "";
-    const links = NAV.map(function (n) { return '<li><a href="#' + n[0] + '" data-nav="' + n[0] + '">' + n[1] + "</a></li>"; }).join("");
+    const links = NAV.map(function (n) { return '<li><a href="' + n.href + '" data-nav="' + n.key + '">' + n.label + "</a></li>"; }).join("");
     return '<header class="site-header">' + announce +
       '<div class="nav-bar" id="nav-bar"><div class="nav-grid">' +
-      '<a href="#kreu" class="brand" aria-label="Korea Pure Beauty, kreu">' + logo +
+      '<a href="#/" class="brand" aria-label="Korea Pure Beauty, ballina">' + logo +
       '<span class="brand__text"><span class="brand__a">Korea Pure</span><span class="brand__b">Beauty</span></span></a>' +
       '<nav class="main-nav" aria-label="Navigimi kryesor"><ul>' + links + "</ul></nav>" +
       '<div class="nav-actions">' +
@@ -223,9 +290,13 @@
   }
 
   function mainHTML() {
-    return heroHTML() + shopHTML() + focusHTML() + ritualHTML() + aboutHTML() + contactHTML();
+    if (state.route === "produktet") return productsPageHTML();
+    if (state.route === "rreth-nesh") return aboutPageHTML();
+    return heroHTML() + marqueeHTML() + shopHTML() + whyHTML() + ingredientsHTML() + ritualHTML() +
+      brandTeaserHTML() + testimonialsHTML() + faqHTML() + contactHTML();
   }
 
+  // ===================== BALLINA =====================
   function heroHTML() {
     const s = settings();
     const img = s.hero_image ? '<img src="' + esc(s.hero_image) + '" alt="Produkte koreane për kujdesin e lëkurës mbi sfond të ngrohtë" loading="eager">' : "";
@@ -234,7 +305,7 @@
       '<p class="hero__eyebrow rise" style="animation-delay:.05s">K-Secret · Premium Korean Skincare</p>' +
       '<h1 id="hero-title" class="rise" style="animation-delay:.15s">Sekreti korean i një lëkure<span class="rose-text font-script">rrezatuese</span></h1>' +
       '<p class="hero__lead rise" style="animation-delay:.3s">Serume, kremra dhe maska nga linja Seoul 1988 e K-Secret — formula me xhensen të zi, retinal dhe vitaminë C, të sjella drejtpërdrejt nga Koreja për ritualin tuaj të përditshëm.</p>' +
-      '<div class="hero__ctas rise" style="animation-delay:.45s"><a href="#dyqani" class="btn btn--pill">Zbulo produktet</a>' +
+      '<div class="hero__ctas rise" style="animation-delay:.45s"><a href="#/produktet" class="btn btn--pill">Zbulo produktet</a>' +
       '<a href="#rituali" class="link-under">Rituali në 4 hapa<span aria-hidden="true">→</span></a></div>' +
       '<ul class="hero__stats rise" style="animation-delay:.6s"><li><strong>' + products().length + '+</strong><span class="muted">produkte</span></li>' +
       '<li><span class="medium">100% origjinale</span></li><li><span class="medium">Dërgesë 24–48 orë</span></li></ul>' +
@@ -245,17 +316,179 @@
       "</div></section>";
   }
 
-  function shopHTML() {
-    const tabs = (state.data.tabs || ["Të gjitha"]).map(function (t) {
+  function marqueeHTML() {
+    const items = ["Produkte origjinale koreane", "Dërgesë 24–48 orë në Kosovë", "Pagesë me para në dorë",
+      "Kthim brenda 14 ditëve", "Këshillim për rutinën tuaj"];
+    const row = items.map(function (t) { return "<li>" + ICON.sparkle + "<span>" + esc(t) + "</span></li>"; }).join("");
+    // Rreshti përsëritet dy herë që lëvizja të duket pa fund
+    return '<section class="marquee" aria-label="Pse të blini te ne"><div class="marquee__track"><ul>' + row +
+      '</ul><ul aria-hidden="true">' + row + "</ul></div></section>";
+  }
+
+  function tabsHTML() {
+    return (state.data.tabs || ["Të gjitha"]).map(function (t) {
       return '<button type="button" role="tab" class="tab" data-tab="' + esc(t) + '" aria-selected="' + (t === state.tab) + '">' + esc(t) + "</button>";
     }).join("");
+  }
+
+  function shopHTML() {
     return '<section id="dyqani" class="section"><div class="container">' +
       '<div class="shop-head"><div class="reveal"><p class="eyebrow">Dyqani</p>' +
       '<h2 class="section-title">' + esc(state.data.collection_title || "Koleksioni") + "</h2>" +
       '<p class="section-sub">Zgjidhni hapin që i mungon ritualit tuaj.</p></div>' +
-      '<div class="shop-tools"><div class="tabs" role="tablist" aria-label="Kategoritë">' + tabs + "</div>" +
+      '<div class="shop-tools"><div class="tabs" role="tablist" aria-label="Kategoritë">' + tabsHTML() + "</div>" +
       '<p class="count" id="count" aria-live="polite"></p></div></div>' +
-      '<ul class="grid" id="grid"></ul></div></section>';
+      '<ul class="grid" id="grid"></ul>' +
+      '<div class="see-all"><a href="#/produktet" class="btn btn--outline">Shiko të gjitha produktet →</a></div>' +
+      "</div></section>";
+  }
+
+  function whyHTML() {
+    const pillars = [
+      ["01", "Shtresa të lehta", "Në vend të një kremi të rëndë, disa produkte të holla që thithen shpejt dhe punojnë së bashku."],
+      ["02", "Parandalim", "Kujdesi i përditshëm dhe mbrojtja nga dielli i ruajnë rezultatet më gjatë se çdo trajtim i shpejtë."],
+      ["03", "Butësi", "Formula që e respektojnë barrierën e lëkurës: pa fërkim të fortë, pa tharje, me qetësi."],
+      ["04", "Inovacion", "Koreja është ndër vendet më novatore në kozmetikë — me përbërës të rinj dhe tekstura të lehta."],
+    ];
+    const cards = pillars.map(function (p, i) {
+      return '<article class="pillar reveal" style="transition-delay:' + i * 80 + 'ms"><span class="pillar__n">' + p[0] + "</span>" +
+        "<h3>" + p[1] + "</h3><p>" + p[2] + "</p></article>";
+    }).join("");
+    return '<section id="pse-kbeauty" class="section why"><div class="container">' +
+      '<div class="section-head reveal"><p class="eyebrow">Pse K-Beauty</p>' +
+      '<h2 class="section-title">Filozofia që e ndryshoi <span class="font-script rose-text accent-script">kujdesin</span></h2>' +
+      '<p class="section-sub">Bukuria koreane nuk është një produkt i vetëm, por një mënyrë e qetë dhe e rregullt për t\'u kujdesur për lëkurën çdo ditë.</p></div>' +
+      '<div class="pillars">' + cards + "</div></div></section>";
+  }
+
+  const INGREDIENTS = [
+    { name: "Centella Asiatica", alias: "Cica", text: "Qetëson lëkurën e acaruar dhe ndihmon në rikthimin e barrierës mbrojtëse.", keys: ["centella", "cica"] },
+    { name: "Mucinë kërmilli", alias: "Snail mucin", text: "Hidraton thellë dhe i jep lëkurës pamje më të freskët dhe elastike.", keys: ["snail", "mucin"] },
+    { name: "Niacinamide", alias: "Vitamina B3", text: "Ndihmon në balancimin e sebumit dhe në njësimin e tonit të lëkurës.", keys: ["niacinamide"] },
+    { name: "Retinal", alias: "Vitamina A", text: "Përshpejton rinovimin e lëkurës dhe zbut linjat e imëta. Përdoret në mbrëmje, me SPF në mëngjes.", keys: ["retin"] },
+    { name: "Acid hialuronik", alias: "Hyaluronic acid", text: "Tërheq dhe mban lagështinë, që lëkura të ndihet e butë gjatë gjithë ditës.", keys: ["hyalur", "hialuron"] },
+    { name: "Çaj jeshil", alias: "Green tea", text: "Antioksidant i butë që e freskon dhe e qetëson lëkurën.", keys: ["green tea", "caj jeshil", "tea tree"] },
+  ];
+
+  function ingredientsHTML() {
+    const cards = INGREDIENTS.map(function (ing, i) {
+      const matches = products().filter(function (p) {
+        return ing.keys.some(function (k) { return p.search.indexOf(k) >= 0; });
+      }).slice(0, 2);
+      const found = matches.length
+        ? '<div class="ing__found"><span>Gjendet te:</span>' + matches.map(function (p) {
+            return '<button type="button" data-open="' + p.id + '">' + esc(p.name) + "</button>";
+          }).join("") + "</div>"
+        : "";
+      return '<article class="ing reveal" style="transition-delay:' + (i % 3) * 80 + 'ms"><p class="ing__alias">' + esc(ing.alias) + "</p>" +
+        "<h3>" + esc(ing.name) + "</h3><p>" + esc(ing.text) + "</p>" + found + "</article>";
+    }).join("");
+    return '<section id="perberesit" class="section ingredients"><div class="container">' +
+      '<div class="section-head reveal"><p class="eyebrow">Përbërësit</p>' +
+      '<h2 class="section-title">Përbërësit yll të kozmetikës <span class="font-script rose-text accent-script">koreane</span></h2>' +
+      '<p class="section-sub">Njihuni me përbërësit që do t\'i gjeni më shpesh në etiketat e produkteve tona — dhe çfarë bëjnë për lëkurën tuaj.</p></div>' +
+      '<div class="ing-grid">' + cards + "</div></div></section>";
+  }
+
+  function ritualHTML() {
+    const steps = (state.data.ritual_steps || []).map(function (s) {
+      return '<li class="step"><span class="step__n" aria-hidden="true">' + esc(s.n) + "</span>" +
+        '<div class="step__body"><p class="step__label"><span class="sr-only">Hapi ' + esc(s.n) + ": </span>" + esc(s.label) + "</p>" +
+        "<h3>" + esc(s.title) + "</h3><p>" + esc(s.text) + "</p></div></li>";
+    }).join("");
+    return '<section id="rituali" class="ritual"><div class="ritual__glow" aria-hidden="true"></div><div class="ritual__line" aria-hidden="true"></div>' +
+      '<div class="ritual__grid"><div><div class="ritual__sticky reveal">' +
+      '<div class="ritual__kicker"><span>Rituali</span></div>' +
+      '<h2>Katër hapa, një lëkurë që <span class="font-script">flet vetë</span></h2>' +
+      '<p class="ritual__lead">Filozofia koreane e bukurisë nuk ka të bëjë me shumë produkte, por me shtresa të lehta që punojnë së bashku. Ja si i përdorni produktet çdo ditë.</p>' +
+      '<button type="button" class="ritual__cta" data-ritual>Ndërtoni ritualin tuaj<span aria-hidden="true">→</span></button>' +
+      '</div></div><ol class="steps">' + steps + "</ol></div></section>";
+  }
+
+  function logoArch(quote) {
+    const s = settings();
+    const logo = s.logo_image ? '<img src="' + esc(s.logo_image) + '" alt="Korea Pure Beauty">' : "";
+    return '<div class="about__visual reveal"><div class="about__outline" aria-hidden="true"></div><div class="about__arch">' + logo + "</div>" +
+      '<p class="about__quote">' + esc(quote) + "</p></div>";
+  }
+
+  function brandTeaserHTML() {
+    return '<section id="marka" class="section about"><div class="container about__grid">' +
+      logoArch("Bukuria nis me kujdesin") +
+      '<div class="about__text reveal"><p class="eyebrow">Rreth markës</p>' +
+      '<h2 class="section-title">Korea Pure Beauty — rituali korean, i sjellë me <span class="font-script">kujdes</span></h2>' +
+      "<p>Ne besojmë se një lëkurë e shëndetshme nuk kërkon shumë produkte, por produktet e duhura, të përdorura me rregull. Prandaj zgjedhim vetë çdo produkt që hyn në dyqanin tonë dhe kontrollojmë origjinalitetin e tij.</p>" +
+      "<p>Nga pastrimi i dyfishtë deri te mbrojtja nga dielli, ju ndihmojmë të ndërtoni një rutinë që i përshtatet llojit të lëkurës suaj — dhe ua dërgojmë te dera brenda 24–48 orëve.</p>" +
+      statsHTML() +
+      '<a href="#/rreth-nesh" class="link-under" style="margin-top:2rem">Lexoni historinë tonë<span aria-hidden="true">→</span></a>' +
+      "</div></div></section>";
+  }
+
+  function statsHTML() {
+    return '<div class="about__stats"><div><strong>' + products().length + "+</strong><span>produkte</span></div>" +
+      "<div><strong>24–48h</strong><span>dërgesa</span></div><div><strong>14</strong><span>ditë për kthim</span></div></div>";
+  }
+
+  function testimonialsHTML() {
+    const list = state.data.testimonials || [];
+    if (!list.length) return "";  // vetëm vlerësime të vërteta nga databaza
+    const cards = list.map(function (t, i) {
+      const stars = "★★★★★".slice(0, t.rating) + "☆☆☆☆☆".slice(0, 5 - t.rating);
+      return '<figure class="quote reveal" style="transition-delay:' + (i % 3) * 80 + 'ms"><p class="quote__stars" aria-label="' + t.rating + ' nga 5 yje">' + stars + "</p>" +
+        "<blockquote>“" + esc(t.text) + "”</blockquote><figcaption>" + esc(t.name) + (t.city ? " · " + esc(t.city) : "") + "</figcaption></figure>";
+    }).join("");
+    return '<section id="vleresimet" class="section reviews"><div class="container">' +
+      '<div class="section-head reveal"><p class="eyebrow">Vlerësimet</p><h2 class="section-title">Çfarë thonë <span class="font-script rose-text accent-script">klientet</span></h2></div>' +
+      '<div class="quotes">' + cards + "</div></div></section>";
+  }
+
+  function faqHTML() {
+    const s = settings();
+    const items = [
+      ["Si e di që produktet janë 100% origjinale?", "Çdo produkt vjen në paketimin, etiketat dhe kodet origjinale të prodhuesit. Punojmë vetëm me furnitorë të besueshëm dhe kontrollojmë çdo dërgesë para se ta vendosim në dyqan."],
+      ["Sa zgjat dërgesa dhe sa kushton?", "Dërgesa zgjat 24–48 orë në gjithë Kosovën. Kushton " + eur(s.shipping_fee || 0) + " dhe është falas për porosi mbi " + eur(s.free_shipping_threshold || 0) + "."],
+      ["Si paguaj?", "Me para në dorë, te korrieri, në momentin që e merrni porosinë. Nuk ju kërkojmë asnjë të dhënë karte."],
+      ["Nuk e di cili produkt më përshtatet. Më ndihmoni?", "Sigurisht. Provoni kuizin “Ndërtoni ritualin tuaj” ose na shkruani te Kontakti / WhatsApp — ju këshillojmë sipas llojit të lëkurës."],
+      ["A mund ta kthej produktin?", "Po, brenda 14 ditëve, nëse produkti është i pahapur dhe në paketimin origjinal. Na kontaktoni para se ta dërgoni."],
+    ];
+    const list = items.map(function (q) {
+      return '<details class="faq__item"><summary><span>' + esc(q[0]) + '</span><span class="faq__icon" aria-hidden="true">' + ICON.plus + "</span></summary><p>" + esc(q[1]) + "</p></details>";
+    }).join("");
+    return '<section id="pyetjet" class="section faq"><div class="container faq__grid">' +
+      '<div class="reveal"><p class="eyebrow">Pyetjet e shpeshta</p><h2 class="section-title">Keni pyetje? Kemi <span class="font-script rose-text accent-script">përgjigje</span></h2>' +
+      '<p class="section-sub">Nëse nuk e gjeni përgjigjen këtu, na shkruani — ju përgjigjemi sa më shpejt.</p>' +
+      '<a href="#kontakt" class="link-under" style="margin-top:1.5rem">Na kontaktoni<span aria-hidden="true">→</span></a></div>' +
+      '<div class="faq__list reveal">' + list + "</div></div></section>";
+  }
+
+  // ===================== FAQJA: PRODUKTET =====================
+  function pageHeroHTML(crumb, eyebrow, titleHTML, lead, facts) {
+    const factList = (facts || []).map(function (f) { return "<li>" + ICON.check + "<span>" + esc(f) + "</span></li>"; }).join("");
+    return '<section class="page-hero"><div class="hero__glow" aria-hidden="true"></div><div class="container page-hero__inner">' +
+      '<nav class="crumbs" aria-label="Ku ndodheni"><a href="#/">Ballina</a><span aria-hidden="true">/</span><span aria-current="page">' + esc(crumb) + "</span></nav>" +
+      '<p class="eyebrow rise">' + esc(eyebrow) + "</p>" +
+      '<h1 class="page-title rise" style="animation-delay:.1s">' + titleHTML + "</h1>" +
+      '<p class="page-lead rise" style="animation-delay:.2s">' + esc(lead) + "</p>" +
+      (factList ? '<ul class="page-facts rise" style="animation-delay:.3s">' + factList + "</ul>" : "") +
+      "</div></section>";
+  }
+
+  function productsPageHTML() {
+    const sorts = [["new", "Më të rejat"], ["price-asc", "Çmimi: ulët → lart"], ["price-desc", "Çmimi: lart → ulët"], ["name", "Emri: A → Z"]];
+    const options = sorts.map(function (o) { return '<option value="' + o[0] + '"' + (state.sort === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("");
+    return pageHeroHTML("Produktet", "Produktet",
+        'Të gjitha <span class="font-script rose-text accent-script">produktet</span>',
+        "Serume, kremra, tonerë, maska dhe mbrojtës dielli — produkte origjinale koreane, të zgjedhura për çdo hap të ritualit tuaj.",
+        [products().length + " produkte", "100% origjinale", "Dërgesë 24–48 orë", "Pagesë në dorëzim"]) +
+      '<section id="katalogu" class="section section--tight"><div class="container">' +
+      '<div class="toolbar">' +
+      '<label class="search"><span class="sr-only">Kërko produkte</span>' + ICON.search +
+      '<input type="search" id="search" placeholder="Kërko me emër, markë ose kategori…" autocomplete="off" value="' + esc(state.search) + '"></label>' +
+      '<label class="sort"><span>Rendit:</span><select id="sort">' + options + "</select></label></div>" +
+      '<div class="toolbar__row"><div class="tabs" role="tablist" aria-label="Kategoritë">' + tabsHTML() + "</div>" +
+      '<p class="count" id="count" aria-live="polite"></p></div>' +
+      '<ul class="grid" id="grid"></ul></div></section>' +
+      focusHTML() + ritualBannerHTML();
   }
 
   function cardHTML(p, index) {
@@ -271,14 +504,39 @@
       '<button type="button" class="add-btn" data-add="' + p.id + '">' + ICON.bag + "<span>Shto në shportë</span></button></li>";
   }
 
+  function normalize(text) {
+    return String(text || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ë/g, "e").replace(/ç/g, "c");
+  }
+
+  function visibleProducts() {
+    let list = products().filter(function (p) { return state.tab === "Të gjitha" || p.tab === state.tab; });
+    if (state.route === "produktet") {
+      const words = normalize(state.search).split(/\s+/).filter(Boolean);
+      if (words.length) {
+        list = list.filter(function (p) {
+          const hay = normalize([p.name, p.brand, p.tab, p.short].join(" "));
+          return words.every(function (w) { return hay.indexOf(w) >= 0; });
+        });
+      }
+      const sorted = list.slice();
+      if (state.sort === "price-asc") sorted.sort(function (a, b) { return a.price - b.price; });
+      else if (state.sort === "price-desc") sorted.sort(function (a, b) { return b.price - a.price; });
+      else if (state.sort === "name") sorted.sort(function (a, b) { return a.name.localeCompare(b.name, "sq"); });
+      list = sorted;  // "Më të rejat" = radha që vjen nga databaza
+    }
+    return list;
+  }
+
   function renderGrid() {
-    const list = products().filter(function (p) { return state.tab === "Të gjitha" || p.tab === state.tab; });
     const grid = $("#grid");
-    grid.innerHTML = list.length
-      ? list.map(cardHTML).join("")
-      : '<li class="empty">Së shpejti produkte të reja në këtë kategori.</li>';
+    if (!grid) return;
+    const list = visibleProducts();
+    const shown = state.route === "home" ? list.slice(0, 8) : list;
+    let empty = "Së shpejti produkte të reja në këtë kategori.";
+    if (state.route === "produktet" && state.search) empty = "Nuk u gjet asnjë produkt për “" + esc(state.search) + "”. Provoni një fjalë tjetër.";
+    grid.innerHTML = shown.length ? shown.map(cardHTML).join("") : '<li class="empty">' + empty + "</li>";
     $("#count").textContent = list.length + " " + plural(list.length, "produkt", "produkte");
-    $all(".tab").forEach(function (t) { t.setAttribute("aria-selected", String(t.dataset.tab === state.tab)); });
+    $all(".tab").forEach(function (t) { if (t.dataset.tab) t.setAttribute("aria-selected", String(t.dataset.tab === state.tab)); });
   }
 
   function focusHTML() {
@@ -298,45 +556,70 @@
         '<button type="button" class="btn btn--pill" data-add="' + p.id + '">' + ICON.bag + "<span>Shto në shportë</span></button>" +
         '<button type="button" class="link-under" data-open="' + p.id + '">Shiko detajet<span aria-hidden="true">→</span></button></div></div></article>';
     }).join("");
-    return '<section id="produktet" class="section focus"><div class="container">' +
-      '<div class="reveal" style="max-width:40rem"><p class="eyebrow">Produktet</p>' +
-      '<h2 class="section-title">Të preferuarat e <span class="font-script rose-text" style="font-size:1.4em">ritualit</span></h2>' +
+    return '<section id="ne-fokus" class="section focus"><div class="container">' +
+      '<div class="section-head reveal"><p class="eyebrow">Në fokus</p>' +
+      '<h2 class="section-title">Të preferuarat e <span class="font-script rose-text accent-script">ritualit</span></h2>' +
       '<p class="section-sub">Produktet që klientet tona i zgjedhin më shpesh — me përbërësit kyç dhe mënyrën e përdorimit.</p></div>' +
       '<div class="focus-list">' + items + "</div></div></section>";
   }
 
-  function ritualHTML() {
-    const steps = (state.data.ritual_steps || []).map(function (s) {
-      return '<li class="step"><span class="step__n" aria-hidden="true">' + esc(s.n) + "</span>" +
-        '<div class="step__body"><p class="step__label"><span class="sr-only">Hapi ' + esc(s.n) + ": </span>" + esc(s.label) + "</p>" +
-        "<h3>" + esc(s.title) + "</h3><p>" + esc(s.text) + "</p></div></li>";
-    }).join("");
-    return '<section id="rituali" class="ritual"><div class="ritual__glow" aria-hidden="true"></div><div class="ritual__line" aria-hidden="true"></div>' +
-      '<div class="ritual__grid"><div><div class="ritual__sticky reveal">' +
-      '<div class="ritual__kicker"><span>Rituali</span></div>' +
-      '<h2>Katër hapa, një lëkurë që <span class="font-script">flet vetë</span></h2>' +
-      '<p class="ritual__lead">Filozofia koreane e bukurisë nuk ka të bëjë me shumë produkte, por me shtresa të lehta që punojnë së bashku. Ja si i përdorni produktet çdo ditë.</p>' +
-      '<button type="button" class="ritual__cta" id="ritual-cta">Ndërtoni ritualin tuaj<span aria-hidden="true">→</span></button>' +
-      '</div></div><ol class="steps">' + steps + "</ol></div></section>";
+  function ritualBannerHTML() {
+    return '<section class="banner"><div class="container banner__inner reveal">' +
+      '<div><p class="eyebrow" style="color:var(--rose)">Nuk e dini nga t\'ia nisni?</p>' +
+      "<h2>Ndërtoni ritualin tuaj në <span class=\"font-script\">tri pyetje</span></h2>" +
+      "<p>Na tregoni llojin e lëkurës dhe synimin tuaj — ne zgjedhim katër produkte që punojnë së bashku, me 10% zbritje për ritualin e plotë.</p></div>" +
+      '<button type="button" class="btn btn--pill" data-ritual>Fillo kuizin →</button></div></section>';
   }
 
-  function aboutHTML() {
-    const s = settings();
-    const logo = s.logo_image ? '<img src="' + esc(s.logo_image) + '" alt="Korea Pure Beauty">' : "";
-    return '<section id="rreth-nesh" class="section about"><div class="container about__grid">' +
-      '<div class="about__visual reveal"><div class="about__outline" aria-hidden="true"></div><div class="about__arch">' + logo + "</div>" +
-      '<p class="about__quote">Bukuria nis me kujdesin</p></div>' +
-      '<div class="about__text reveal"><p class="eyebrow">Rreth nesh</p>' +
-      '<h2 class="section-title">Rituali korean, i sjellë me <span class="font-script">kujdes</span></h2>' +
+  // ===================== FAQJA: RRETH NESH =====================
+  function aboutPageHTML() {
+    const values = [
+      [ICON.shield, "Origjinalitet", "Vetëm produkte origjinale koreane, në paketimin dhe me etiketat e prodhuesit."],
+      [ICON.heart, "Këshillë personale", "Ju ndihmojmë të zgjidhni sipas llojit të lëkurës dhe asaj që dëshironi të arrini."],
+      [ICON.truck, "Dërgesë e shpejtë", "24–48 orë në gjithë Kosovën, me paketim të kujdesshëm dhe pagesë në dorëzim."],
+      [ICON.eye, "Transparencë", "Çmime të qarta, përbërës të shkruar dhe kushte kthimi të thjeshta — pa surpriza."],
+    ].map(function (v, i) {
+      return '<div class="value reveal" style="transition-delay:' + i * 80 + 'ms"><span class="value__icon">' + v[0] + "</span><h4>" + v[1] + "</h4><p>" + v[2] + "</p></div>";
+    }).join("");
+    const process = [
+      ["01", "Përzgjedhim", "Testojmë dhe zgjedhim produktet që i besojmë vetë — të njohura për rezultatet dhe butësinë."],
+      ["02", "Kontrollojmë", "Çdo dërgesë kontrollohet: paketimi, etiketat, data e skadencës dhe origjinaliteti."],
+      ["03", "Paketojmë", "Porosia juaj paketohet me dorë dhe me kujdes, që të arrijë e paprekur."],
+      ["04", "Dorëzojmë", "Korrieri ju telefonon dhe e sjell te dera juaj brenda 24–48 orëve."],
+    ].map(function (p) {
+      return '<li class="process__step reveal"><span class="process__n">' + p[0] + "</span><h3>" + p[1] + "</h3><p>" + p[2] + "</p></li>";
+    }).join("");
+    return pageHeroHTML("Rreth nesh", "Rreth nesh",
+        'Historia e <span class="font-script rose-text accent-script">Korea Pure Beauty</span>',
+        "Një dyqan i vogël me një ide të madhe: t'ua sjellim ritualin korean të kujdesit për lëkurën — origjinal, të thjeshtë dhe me këshillë të sinqertë.",
+        ["Prishtinë, Kosovë", "Produkte origjinale", "Këshillim personal"]) +
+      '<section class="section about"><div class="container about__grid">' + logoArch("Bukuria nis me kujdesin") +
+      '<div class="about__text reveal"><p class="eyebrow">Si filloi</p>' +
+      '<h2 class="section-title">Nga dashuria për K-Beauty, te dyqani <span class="font-script">ynë</span></h2>' +
       "<p>Korea Pure Beauty lindi nga dashuria për rutinën koreane të kujdesit për lëkurën — një filozofi që nuk kërkon shumë produkte, por produktet e duhura, të përdorura me rregull dhe me butësi.</p>" +
-      "<p>Ne përzgjedhim vetë çdo produkt, kontrollojmë origjinalitetin dhe ju ndihmojmë të gjeni hapin që i mungon ritualit tuaj. Çdo porosi paketohet me kujdes dhe arrin te dera juaj brenda 24–48 orëve.</p>" +
-      '<div class="values">' +
-      '<div class="value"><span class="value__icon">' + ICON.shield + "</span><h4>Origjinalitet</h4><p>Vetëm produkte origjinale koreane, në paketimin e prodhuesit.</p></div>" +
-      '<div class="value"><span class="value__icon">' + ICON.heart + "</span><h4>Këshillë personale</h4><p>Ju ndihmojmë të zgjidhni sipas llojit dhe nevojave të lëkurës.</p></div>" +
-      '<div class="value"><span class="value__icon">' + ICON.truck + "</span><h4>Dërgesë e shpejtë</h4><p>24–48 orë në gjithë Kosovën, me pagesë në dorëzim.</p></div></div>" +
-      '<div class="about__stats"><div><strong>' + products().length + "+</strong><span>produkte</span></div>" +
-      "<div><strong>24–48h</strong><span>dërgesa</span></div><div><strong>14</strong><span>ditë për kthim</span></div></div>" +
-      "</div></div></section>";
+      "<p>Shpesh na pyesnin ku mund të gjenden produkte koreane origjinale dhe cilat i përshtaten cilit lloj lëkure. Kështu vendosëm t'i sjellim vetë: të përzgjedhura me kujdes, me çmime të qarta dhe me këshillë të sinqertë për çdo klient.</p>" +
+      "<p>Sot ju ndihmojmë të ndërtoni hap pas hapi një ritual që i përshtatet lëkurës suaj — nga pastrimi i dyfishtë deri te mbrojtja nga dielli.</p>" +
+      statsHTML() + "</div></div></section>" +
+      '<section class="section mission"><div class="container mission__grid">' +
+      '<article class="mission__card reveal"><p class="eyebrow">Misioni</p><h3>Kujdes i thjeshtë, që funksionon</h3><p>T\'ua bëjmë kujdesin korean për lëkurën të kuptueshëm dhe të arritshëm: produkte origjinale, rutina të qarta dhe ndihmë kur ju duhet.</p></article>' +
+      '<article class="mission__card reveal" style="transition-delay:80ms"><p class="eyebrow">Vizioni</p><h3>Adresa e parë për K-Beauty në Kosovë</h3><p>Të jemi vendi ku çdokush vjen me besim për produkte koreane — sepse di që merr origjinalen dhe këshillën e duhur.</p></article>' +
+      "</div></section>" +
+      '<section class="section values-section"><div class="container"><div class="section-head reveal"><p class="eyebrow">Vlerat tona</p>' +
+      '<h2 class="section-title">Çfarë na udhëheq çdo <span class="font-script rose-text accent-script">ditë</span></h2></div>' +
+      '<div class="values values--4">' + values + "</div></div></section>" +
+      '<section class="section process"><div class="container"><div class="section-head reveal"><p class="eyebrow">Si punojmë</p>' +
+      '<h2 class="section-title">Nga Koreja te dera <span class="font-script rose-text accent-script">juaj</span></h2></div>' +
+      '<ol class="process__list">' + process + "</ol></div></section>" +
+      '<section class="promise"><div class="container promise__inner reveal">' +
+      '<p class="promise__script">Premtimi ynë</p>' +
+      "<h2>Asnjë produkt nuk hyn në dyqan pa e kontrolluar vetë. Asnjë klient nuk mbetet pa përgjigje.</h2>" +
+      '<ul class="promise__list"><li>' + ICON.check + "Produkte origjinale</li><li>" + ICON.check + "Kthim brenda 14 ditëve</li><li>" + ICON.check + "Përgjigje e shpejtë në WhatsApp</li></ul></div></section>" +
+      testimonialsHTML() +
+      '<section class="section cta-end"><div class="container cta-end__inner reveal">' +
+      '<h2 class="section-title">Gati për ritualin <span class="font-script rose-text accent-script">tuaj?</span></h2>' +
+      '<p class="section-sub">Zbuloni produktet ose na shkruani — ju ndihmojmë të zgjidhni.</p>' +
+      '<div class="cta-end__btns"><a href="#/produktet" class="btn btn--pill">Shiko produktet</a><a href="#kontakt" class="btn btn--outline">Na kontaktoni</a></div>' +
+      "</div></section>";
   }
 
   function contactHTML() {
@@ -426,7 +709,7 @@
       if (t.closest("[data-close-drawer]")) { closeDrawer(); return; }
       if (t.closest("#cart-btn")) { openDrawer("items"); return; }
       if (t.closest("#account-btn")) { openAccount(); return; }
-      if (t.closest("#ritual-cta")) { openRitual(); return; }
+      if (t.closest("[data-ritual]")) { openRitual(); return; }
       if (t.closest("#privacy-btn")) { openPrivacy(); return; }
       if (t.closest("#menu-btn")) { toggleMenu(); return; }
       if (t.closest("#mobile-nav a")) { toggleMenu(false); return; }
@@ -437,6 +720,13 @@
       if ($("#overlay").classList.contains("is-open")) closeModal();
       else if (isDrawerOpen()) closeDrawer();
     });
+    document.addEventListener("input", function (e) {
+      if (e.target.id === "search") { state.search = e.target.value; renderGrid(); }
+    });
+    document.addEventListener("change", function (e) {
+      if (e.target.id === "sort") { state.sort = e.target.value; renderGrid(); }
+    });
+    window.addEventListener("hashchange", onHashChange);
     document.addEventListener("submit", function (e) {
       if (e.target.id === "contact-form") { e.preventDefault(); submitContact(e.target); }
     });
@@ -470,14 +760,12 @@
   }
 
   function observeSections() {
-    if (!("IntersectionObserver" in window)) return;
-    const io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) {
-        if (!en.isIntersecting) return;
-        $all("[data-nav]").forEach(function (a) { a.classList.toggle("is-active", a.dataset.nav === en.target.id); });
-      });
+    if (state.sectionObserver) state.sectionObserver.disconnect();
+    if (state.route !== "home" || !("IntersectionObserver" in window)) return;
+    state.sectionObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) updateActiveNav(en.target.id); });
     }, { rootMargin: "-45% 0px -50% 0px" });
-    NAV.forEach(function (n) { const s = document.getElementById(n[0]); if (s) io.observe(s); });
+    HOME_SPY.forEach(function (id) { const el = document.getElementById(id); if (el) state.sectionObserver.observe(el); });
   }
 
   function toast(text) {
